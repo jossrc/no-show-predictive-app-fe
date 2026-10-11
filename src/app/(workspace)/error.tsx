@@ -3,10 +3,11 @@
 import { ErrorState } from '@/components/shared/ErrorState';
 
 export default function WorkspaceError({
-  reset,
+  error,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  retry: () => void;
 }) {
-  return <ErrorState onRetry={reset} />;
+  return <ErrorState digest={error.digest} onRetry={retry} />;
 }

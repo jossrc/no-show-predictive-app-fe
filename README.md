@@ -1,55 +1,92 @@
 # Agenda Predictiva · Frontend
 
-Fundación técnica del sistema predictivo de inasistencias para una empresa de estética y cuidado personal. Incluye bienvenida, navegación responsive y componentes base; las funciones de negocio se desarrollarán después.
+Frontend del sistema web predictivo de inasistencias (XGBoost y Random Forest) para una empresa de
+estética y cuidado personal. Sprint 01 — Core predictivo: reservas (HU-01/HU-03), probabilidad
+estimada (HU-02), factores SHAP (HU-05) e historial del cliente (HU-06), integrados con el backend
+Fastify desde el servidor de Next.js.
+
+Las estimaciones son **exploratorias** (`EXPLORATORY_NOT_VALIDATED`): no hay niveles de riesgo
+aprobados ni uso operativo. Detalles en [docs/frontend-sprint-01.md](docs/frontend-sprint-01.md) y
+[la matriz de aceptación](docs/sprint-01-frontend-acceptance.md).
 
 ## Comenzar
 
 Desde `no-show-predictive-app-fe/`:
 
 ```sh
-# Si NVM aún no está cargado:
-. "$HOME/.nvm/nvm.sh"
+. "$HOME/.nvm/nvm.sh"   # si NVM no está cargado
 nvm use 24.20.0
 npm ci
-npm run dev
+cp .env.example .env.local
 ```
 
-Abrir [http://localhost:3001](http://localhost:3001). Para detener el servidor, usar `Ctrl+C`.
+Editar `.env.local` (nunca se versiona):
 
-Node 24.20.0 y npm 12.0.2; Next.js 16.4.0; React/React DOM 19.3.0; TypeScript nativo 7.0.2. Las versiones directas y el lockfile están fijados. No se cambia el Node global de NVM.
+```dotenv
+FASTIFY_API_BASE_URL=http://127.0.0.1:3000
+FASTIFY_INTERNAL_API_KEY=<clave interna ORIGINAL de Fastify, no el hash INTERNAL_API_KEY_SHA256>
+FRONTEND_DATA_MODE=live
+```
 
-No hace falta crear un `.env` para ver el cascarón. `.env.example` documenta las variables exclusivamente de servidor para una integración futura. Nunca colocar una API Key en una variable `NEXT_PUBLIC_`.
+La clave solo se lee en el servidor de Next.js; nunca usar `NEXT_PUBLIC_`.
+
+## Levantar los servicios
+
+1. **ML (Python, puerto 8001)** — ver `../depi-noshow-ml/docs/api_operations.md`.
+2. **Backend Fastify (puerto 3000)** — en `../no-show-predictive-app-be`, con `INTERNAL_API_KEY_SHA256`
+   y `ML_SERVICE_*` configurados según su README.
+3. **Frontend (puerto 3001)**:
+
+```sh
+npm run dev   # http://127.0.0.1:3001 (solo loopback)
+```
+
+Sin backend la aplicación sigue cargando y muestra errores localizados. Para ver la interfaz con
+datos **sintéticos de prueba** sin backend: `FRONTEND_DATA_MODE=mock npm run dev` (se indica con un
+aviso en todas las pantallas).
+
+### Restricciones del modo LIVE
+
+No existe autenticación de usuarios (HU-21/HU-22 son posteriores). Por eso el servidor escucha solo
+en `127.0.0.1`, rechaza cabeceras `Host` externas y **el modo LIVE se rechaza en producción**. No
+desplegar públicamente.
+
+### Verificación manual contra el backend real (pendiente)
+
+Con Fastify en marcha, abrir: `/reservations` (listado y filtros), el detalle de una reserva
+(riesgo esperado `NOT_SCORABLE`), el historial en ambas pestañas y «Ver explicación» (409
+`EXPLANATION_SNAPSHOT_UNAVAILABLE` esperado). **No** pulsar «Solicitar predicción» sobre reservas
+reales sin decidir conscientemente sus efectos de persistencia.
 
 ## Comandos
 
-| Comando                                   | Propósito                                      |
-| ----------------------------------------- | ---------------------------------------------- |
-| `npm run dev`                             | Desarrollo con Turbopack en 3001               |
-| `npm run build`                           | Build de producción y verificación nativa TS 7 |
-| `npm run start`                           | Producción en 3001, tras hacer build           |
-| `npm run lint` / `npm run lint:fix`       | ESLint y correcciones                          |
-| `npm run format` / `npm run format:check` | Prettier y verificación                        |
-| `npm run typecheck`                       | Generar tipos Next y comprobar con TS 7        |
-| `npm test` / `npm run test:watch`         | Vitest sin/con watch                           |
-| `npm run test:coverage`                   | Cobertura en `coverage/`                       |
-| `npm run test:e2e`                        | Chromium, servidor gestionado por Playwright   |
-| `npm run check`                           | Lint, formato, tipos, pruebas y build          |
+| Comando                                   | Propósito                                              |
+| ----------------------------------------- | ------------------------------------------------------ |
+| `npm run dev`                             | Desarrollo en `127.0.0.1:3001`                         |
+| `npm run build` / `npm run start`         | Build de producción / servidor (LIVE rechazado)        |
+| `npm run lint` / `npm run lint:fix`       | ESLint                                                 |
+| `npm run format` / `npm run format:check` | Prettier                                               |
+| `npm run typecheck`                       | Tipos de rutas + TypeScript 7                          |
+| `npm test` / `npm run test:coverage`      | Vitest (unidad, integración HTTP con MSW, componentes) |
+| `npm run test:e2e`                        | Playwright con backend simulado (`mock`)               |
+| `npm run check`                           | Lint, formato, tipos, pruebas y build                  |
 
-Para preparar el navegador E2E:
+Playwright necesita el puerto 3001 libre (detener `npm run dev`) y Chromium
+(`npm exec playwright install chromium`). Nunca usa datos reales ni ejecuta POST reales.
 
-```sh
-npm exec playwright install chromium
-npm run test:e2e
+## Organización
+
+```text
+src/
+  app/(workspace)/reservations/            listado, [reservationId] detalle, loading/error/not-found
+  components/{layout,shared,ui}/           shell, componentes reutilizables, primitivas shadcn
+  features/{reservations,reservation-risk,client-history,prediction-models}/
+    api/        contratos Zod, acceso server-only y Server Actions
+    model/      transformaciones puras y textos de presentación
+    components/ vistas de la funcionalidad
+  lib/{api,config,dates,errors,format,security}/
+  proxy.ts                                 restricción a loopback
+  tests/{unit,integration,components,e2e,mocks,support}/
 ```
 
-Playwright necesita el puerto 3001 libre y detiene su servidor al terminar. No consume servicios de los proyectos vecinos.
-
-## Organización y límites
-
-Las rutas `/`, `/reservations`, `/reports`, `/models` y `/settings` cargan con un layout común. El tema admite claro, oscuro y la preferencia inicial del sistema.
-
-Consultar [la arquitectura, compatibilidad y verificaciones](docs/frontend-foundation.md). TypeScript 6 proporciona la API auxiliar para ESLint y el CLI interno de Next; el proyecto usa el compilador nativo 7.0.2 en `typecheck` y después del build. No hay errores de tipos ignorados.
-
-Husky y lint-staged revisan los archivos modificados en pre-commit. `npm ci` ejecuta `prepare`; si se necesita reinstalar el hook en un clon Git, ejecutar `npm run prepare`. La configuración de CI ejecuta `npm ci` y `npm run check`, sin despliegues.
-
-No hay autenticación, llamadas HTTP, reservas reales, predicciones, umbrales de riesgo ni exportaciones. El siguiente paso es contrastar los contratos de Fastify y definir autorización antes de integrar la primera historia de reservas.
+Fundación técnica (versiones, TypeScript 7, reglas de calidad): [docs/frontend-foundation.md](docs/frontend-foundation.md).

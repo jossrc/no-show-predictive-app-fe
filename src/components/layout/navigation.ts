@@ -1,9 +1,9 @@
-import { CalendarDays, ChartNoAxesCombined, House, Settings2, Shapes } from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
 
+/**
+ * Sprint 01 se centra en reservas; el detalle se alcanza por navegación contextual.
+ * Los módulos de sprints posteriores no se muestran como funcionalidades disponibles.
+ */
 export const navigationItems = [
-  { href: '/', label: 'Inicio', icon: House },
   { href: '/reservations', label: 'Reservas', icon: CalendarDays },
-  { href: '/reports', label: 'Reportes', icon: ChartNoAxesCombined },
-  { href: '/models', label: 'Modelos', icon: Shapes },
-  { href: '/settings', label: 'Configuración', icon: Settings2 },
 ] as const;

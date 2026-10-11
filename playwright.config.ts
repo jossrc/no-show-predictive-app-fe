@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+/**
+ * E2E con el backend SIMULADO (`FRONTEND_DATA_MODE=mock`): respuestas deterministas, sin
+ * PostgreSQL, sin Python y sin POST reales. Las variables de proceso tienen prioridad sobre
+ * `.env.local`, por lo que nunca se usan datos reales en estas pruebas.
+ */
 export default defineConfig({
   testDir: './src/tests/e2e',
   fullyParallel: false,
@@ -10,9 +15,10 @@ export default defineConfig({
   use: { baseURL: 'http://127.0.0.1:3001', colorScheme: 'light', trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'npm run dev -- --hostname 127.0.0.1',
-    url: 'http://127.0.0.1:3001',
+    command: 'npm run dev',
+    url: 'http://127.0.0.1:3001/reservations',
     reuseExistingServer: false,
-    timeout: 120_000,
+    timeout: 180_000,
+    env: { FRONTEND_DATA_MODE: 'mock', FASTIFY_INTERNAL_API_KEY: '' },
   },
 });

@@ -48,6 +48,11 @@ export default defineConfig([
     files: ['src/app/**/page.tsx'],
     rules: { 'max-lines': ['error', { max: 120, ...effectiveLines }] },
   },
+  {
+    // Los bloques describe() agrupan casos; cada archivo de prueba conserva max-lines y complejidad.
+    files: ['src/tests/**/*.{test,spec}.{ts,tsx}'],
+    rules: { 'max-lines-per-function': 'off' },
+  },
   // Registry components keep upstream structure; all other checks still apply.
   prettier,
 ]);

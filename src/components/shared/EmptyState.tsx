@@ -1,15 +1,34 @@
-import { FolderOpen } from 'lucide-react';
+import { Inbox, type LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 
-import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
-export function EmptyState({ title, description }: { title: string; description: string }) {
+interface EmptyStateProps {
+  title: string;
+  description?: ReactNode;
+  icon?: LucideIcon;
+  action?: ReactNode;
+  className?: string;
+}
+
+/** Estado vacío proporcionado al contenedor: sin tarjetas gigantes ni relleno ficticio. */
+export function EmptyState({
+  title,
+  description,
+  icon: Icon = Inbox,
+  action,
+  className,
+}: EmptyStateProps) {
   return (
-    <Card>
-      <CardContent className="flex flex-col items-center px-6 py-16 text-center">
-        <FolderOpen aria-hidden="true" className="mb-5 size-8 text-muted-foreground" />
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
+    <div className={cn('flex flex-col items-center px-6 py-10 text-center', className)}>
+      <span className="mb-3 flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <Icon aria-hidden="true" className="size-4" />
+      </span>
+      <p className="text-sm font-medium">{title}</p>
+      {description && (
+        <p className="mt-1 max-w-md text-sm text-pretty text-muted-foreground">{description}</p>
+      )}
+      {action && <div className="mt-4">{action}</div>}
+    </div>
   );
 }
