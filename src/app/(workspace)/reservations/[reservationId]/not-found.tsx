@@ -6,14 +6,14 @@ import { Button } from '@/components/ui/button';
 
 export default function ReservationNotFound() {
   return (
-    <div className="mx-auto max-w-lg rounded-xl border bg-card shadow-xs">
+    <div className="mx-auto max-w-lg rounded-xl border bg-card shadow-surface">
       <EmptyState
         icon={SearchX}
-        title="Reserva no encontrada"
-        description="La reserva no existe o no está disponible para esta consulta (RESERVATION_NOT_FOUND)."
+        title="No encontramos esta reserva"
+        description="Verifica el identificador o vuelve al listado."
         action={
-          <Button asChild size="sm" variant="outline">
-            <Link href="/reservations">Volver al listado de reservas</Link>
+          <Button asChild variant="outline">
+            <Link href="/reservations">Volver a reservas</Link>
           </Button>
         }
       />

@@ -14,7 +14,6 @@ Aplicación generada directamente en `no-show-predictive-app-fe/` con `create-ne
 | shadcn CLI / Radix UI        | 4.21.4 / 1.7.0           |
 | ESLint / Prettier            | 9.39.5 / 3.9.10          |
 | Vitest / Playwright          | 5.0.3 / 1.64.0           |
-| Recharts                     | 3.10.1                   |
 
 `package.json` fija las versiones directas y `package-lock.json` las transitivas. `.npmrc` aplica `save-exact`, `engine-strict` y lockfile. `.nvmrc` permite seleccionar Node sin cambiar el alias global. npm 12 restringe scripts de instalación de dependencias por defecto; no se habilitan indiscriminadamente.
 
@@ -93,7 +92,7 @@ Prettier usa 2 espacios, comillas simples, punto y coma, 100 columnas y LF; orde
 
 CLI oficial [shadcn 4](https://ui.shadcn.com/docs/cli), preset `nova`, base explícita `radix`, familia `radix-nova`, Lucide y tokens CSS. `cn` lo instala el CLI y se re-exporta desde `lib/utils.ts`; no se agregan `clsx` ni `tailwind-merge` alternativos.
 
-Componentes disponibles: Button, Card, Badge, Separator, Skeleton, Alert, Input, Label, Textarea, Select, Dialog, Sheet, Dropdown Menu, Tooltip, Tabs, Table, Checkbox, Popover, Calendar, Sonner y Chart. Calendar y Chart mantienen sus dependencias oficiales; Recharts es la única librería de gráficos.
+Componentes disponibles: Button, Card, Badge, Separator, Skeleton, Alert, Input, Label, Textarea, Select, Dialog, Sheet, Dropdown Menu, Tooltip, Tabs, Table, Checkbox, Popover, Calendar, Sonner y NativeSelect. Calendar mantiene sus dependencias oficiales. Chart y Recharts se retiraron en el rediseño: la interfaz no usa gráficos.
 
 La dirección visual es sobria: verde salvia, fondos cálidos, bordes suaves y tipografía del sistema. No se descargan fuentes externas durante build. Tema claro/oscuro con next-themes y supresión de hydration limitada al HTML que cambia de clase. Sidebar de escritorio y Sheet accesible en móvil, ruta activa con `aria-current`, botón de tema con `aria-pressed`, enlace de salto al contenido, iconos decorativos ocultos a lectores y foco visible. La preferencia inicial puede seguir al sistema; el botón alterna claro/oscuro.
 

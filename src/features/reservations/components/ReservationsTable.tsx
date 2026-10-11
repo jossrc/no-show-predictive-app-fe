@@ -1,6 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -9,12 +10,25 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { AvailabilityBadge } from '@/features/reservation-risk/components/AvailabilityBadge';
 import { ScoreList } from '@/features/reservation-risk/components/ScoreList';
-import { AVAILABILITY_LABELS } from '@/features/reservation-risk/model/availability';
 import { ReservationStatusBadge } from '@/features/reservations/components/ReservationStatusBadge';
 import { formatReservationLabel } from '@/features/reservations/model/labels';
 import type { ReservationRowView } from '@/features/reservations/model/row-view';
+
+/** Enlace único por reserva: el nombre accesible incluye el texto visible y el identificador. */
+export function DetailLink({ row }: { row: ReservationRowView }) {
+  return (
+    <Button asChild variant="ghost" size="sm" className="text-primary hover:text-primary">
+      <Link
+        href={row.detailHref}
+        aria-label={`Ver detalle de ${formatReservationLabel(row.reservationId)}`}
+      >
+        Ver detalle
+        <ChevronRight aria-hidden="true" />
+      </Link>
+    </Button>
+  );
+}
 
 /** Tabla semántica de escritorio. La paginación es del servidor: no se re-pagina aquí. */
 export function ReservationsTable({
@@ -25,74 +39,51 @@ export function ReservationsTable({
   caption: string;
 }) {
   return (
-    <Table className="min-w-[760px]">
+    <Table>
       <caption className="sr-only">{caption}</caption>
-      <ReservationsTableHeader />
+      <TableHeader className="bg-surface-subtle">
+        <TableRow className="hover:bg-transparent">
+          <TableHead className="pl-5">Reserva</TableHead>
+          <TableHead>Fecha y hora</TableHead>
+          <TableHead className="hidden xl:table-cell">Cliente</TableHead>
+          <TableHead>Sede</TableHead>
+          <TableHead>Estado</TableHead>
+          <TableHead>Estimación</TableHead>
+          <TableHead className="pr-5 text-right">
+            <span className="sr-only">Acción</span>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
       <TableBody>
         {rows.map((row) => (
-          <TableRow key={row.reservationId} className="group">
-            <TableCell className="py-3 pl-4">
-              <Link
-                href={row.detailHref}
-                className="font-mono text-[13px] font-medium tabular-nums underline-offset-4 hover:underline"
-              >
-                #{row.reservationId}
-              </Link>
+          <TableRow key={row.reservationId}>
+            <TableCell className="pl-5 font-medium tabular-nums">#{row.reservationId}</TableCell>
+            <TableCell className="tabular-nums">
+              <span className="text-muted-foreground">{row.weekday} </span>
+              {row.date}
+              <span className="text-muted-foreground"> · </span>
+              {row.time}
             </TableCell>
-            <TableCell className="py-3">
-              <div className="tabular-nums">{row.date}</div>
-              <div className="text-xs text-muted-foreground tabular-nums">
-                {row.weekday} · {row.time}
-              </div>
+            <TableCell className="hidden text-muted-foreground tabular-nums xl:table-cell">
+              #{row.clientId}
             </TableCell>
-            <TableCell className="py-3 text-muted-foreground">{row.clinicLabel}</TableCell>
-            <TableCell className="py-3">
+            <TableCell className="text-muted-foreground">{row.clinicLabel}</TableCell>
+            <TableCell>
               <ReservationStatusBadge
                 status={row.status}
                 stale={row.stale}
                 rescheduled={row.rescheduled}
               />
             </TableCell>
-            <TableCell className="py-3">
-              <ScoreList scores={row.scores} emptyLabel={AVAILABILITY_LABELS[row.availability]} />
+            <TableCell>
+              <ScoreList scores={row.scores} />
             </TableCell>
-            <TableCell className="py-3">
-              <AvailabilityBadge availability={row.availability} />
-            </TableCell>
-            <TableCell className="py-3 pr-4 text-right">
-              <Link
-                href={row.detailHref}
-                aria-label={`Ver detalle de ${formatReservationLabel(row.reservationId)}`}
-                className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors group-hover:text-foreground hover:bg-muted"
-              >
-                <ChevronRight aria-hidden="true" className="size-4" />
-              </Link>
+            <TableCell className="pr-3 text-right">
+              <DetailLink row={row} />
             </TableCell>
           </TableRow>
         ))}
       </TableBody>
     </Table>
-  );
-}
-
-function ReservationsTableHeader() {
-  return (
-    <TableHeader className="bg-surface-subtle">
-      <TableRow className="hover:bg-transparent">
-        <TableHead className="pl-4 text-xs font-medium text-muted-foreground">Reserva</TableHead>
-        <TableHead className="text-xs font-medium text-muted-foreground">Cita (Lima)</TableHead>
-        <TableHead className="text-xs font-medium text-muted-foreground">Clínica</TableHead>
-        <TableHead className="text-xs font-medium text-muted-foreground">Estado</TableHead>
-        <TableHead className="text-xs font-medium text-muted-foreground">
-          Probabilidad estimada
-        </TableHead>
-        <TableHead className="text-xs font-medium text-muted-foreground">
-          Estado predictivo
-        </TableHead>
-        <TableHead className="pr-4 text-right text-xs font-medium text-muted-foreground">
-          <span className="sr-only">Acciones</span>
-        </TableHead>
-      </TableRow>
-    </TableHeader>
   );
 }

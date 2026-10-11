@@ -1,9 +1,11 @@
+'use client';
+
 import { CircleAlert } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import { ReasonList } from '@/components/shared/ReasonList';
-import { RequestIdNote } from '@/components/shared/RequestIdNote';
+import { ClientDiagnostics } from '@/components/diagnostics/ClientDiagnostics';
 import type { ApiError } from '@/lib/api/result';
+import { type DiagnosticSection, responseSections } from '@/lib/diagnostics/sections';
 import { describeApiError } from '@/lib/errors/error-catalog';
 import { cn } from '@/lib/utils';
 
@@ -14,45 +16,48 @@ interface ApiErrorNoticeProps {
   description?: string;
   /** Acción de recuperación (reintento manual, volver a la primera página…). */
   action?: ReactNode;
+  /** Contexto técnico adicional para el diagnóstico de desarrollo. */
+  diagnostics?: DiagnosticSection[];
   className?: string;
 }
 
 /**
- * Error localizado dentro de la página o sección. Muestra un mensaje en español, motivos
- * técnicos en un desplegable y el `requestId`; nunca credenciales ni stacks.
+ * Error localizado junto a la funcionalidad afectada, en lenguaje sencillo. Los códigos, el
+ * estado HTTP y el `requestId` solo se consultan en el diagnóstico de desarrollo.
  */
 export function ApiErrorNotice({
   error,
   title,
   description,
   action,
+  diagnostics = [],
   className,
 }: ApiErrorNoticeProps) {
   const presentation = describeApiError(error);
-  const fieldErrors = error.fieldErrors.map((item) => ({
-    code: item.field,
-    message: item.message,
-  }));
-
   return (
     <div
       role="alert"
       className={cn(
-        'flex gap-3 rounded-lg border border-destructive/25 bg-destructive/5 px-3.5 py-3 text-sm',
+        'flex gap-3 rounded-lg border border-destructive/20 bg-destructive/[0.04] px-4 py-3.5 text-sm',
         className,
       )}
     >
       <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-destructive" />
-      <div className="min-w-0 flex-1 space-y-2">
+      <div className="min-w-0 flex-1 space-y-2.5">
         <div className="space-y-0.5">
           <p className="font-medium text-foreground">{title ?? presentation.title}</p>
           <p className="text-pretty text-muted-foreground">
             {description ?? presentation.description}
           </p>
         </div>
-        <ReasonList reasons={[...error.reasons, ...fieldErrors]} summary="Detalles técnicos" />
-        <RequestIdNote requestId={error.requestId} />
-        {action && <div className="flex flex-wrap gap-2 pt-1">{action}</div>}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 empty:hidden">
+          {action}
+          <ClientDiagnostics
+            subject={title ?? presentation.title}
+            sections={[...diagnostics, ...responseSections({ ok: false, error })]}
+            variant="link"
+          />
+        </div>
       </div>
     </div>
   );

@@ -1,48 +1,32 @@
-import type { ModelCatalog } from '@/features/prediction-models/api/contract';
-import type { RiskAssessment } from '@/features/reservation-risk/api/risk.contract';
+import { Info } from 'lucide-react';
+
 import {
-  describeSourceStatus,
-  RISK_POLICY_PENDING_TEXT,
+  EXPERIMENTAL_NOTE,
+  EXPERIMENTAL_NOTE_PLURAL,
 } from '@/features/reservation-risk/model/availability';
-import type { ApiResult } from '@/lib/api/result';
-import { formatLimaDateTime } from '@/lib/dates/lima';
-import { describeApiError } from '@/lib/errors/error-catalog';
+import { cn } from '@/lib/utils';
 
 /**
- * Contexto científico y técnico de la estimación: estado exploratorio, política de riesgo,
- * snapshot y catálogo. Solo usa valores devueltos por la API.
+ * Advertencia científica junto a las estimaciones: preserva su significado (experimentales, no
+ * aptas para decisiones operativas) sin repetirla en varios lugares.
  */
 export function RiskFootnote({
-  risk,
-  catalog,
+  plural = false,
+  detail,
+  className,
 }: {
-  risk: RiskAssessment;
-  catalog: ApiResult<ModelCatalog>;
+  plural?: boolean;
+  /** Aclaración adicional opcional, p. ej. la clasificación de riesgo pendiente. */
+  detail?: string | null;
+  className?: string;
 }) {
-  const policyApproved = risk.riskPolicyStatus === 'approved' && risk.riskLevel !== null;
   return (
-    <div className="space-y-1.5 leading-relaxed">
-      <p>
-        Estimaciones exploratorias ({risk.validationStatus}), sin calibración validada para uso
-        operativo. No existe ensemble ni modelo ganador.{' '}
-        {policyApproved
-          ? `Nivel informado por la política ${risk.riskPolicyVersion ?? ''}: ${risk.riskLevel}.`
-          : RISK_POLICY_PENDING_TEXT}
-      </p>
-      {risk.snapshot && (
-        <p>
-          Snapshot {risk.snapshot.featureVersion} · {risk.snapshot.builderVersion} · corte{' '}
-          {formatLimaDateTime(risk.snapshot.predictionAt)} · evidencia{' '}
-          {risk.snapshot.evidenceSource}
-        </p>
-      )}
-      <p>Fuente: {describeSourceStatus(risk.sourceStatus)}.</p>
-      {!catalog.ok && (
-        <p>
-          Catálogo de modelos no disponible ({describeApiError(catalog.error).title.toLowerCase()}):
-          los modelos se identifican por su clave.
-        </p>
-      )}
-    </div>
+    <p className={cn('flex gap-2 text-xs leading-relaxed text-muted-foreground', className)}>
+      <Info aria-hidden="true" className="mt-px size-3.5 shrink-0" />
+      <span>
+        {plural ? EXPERIMENTAL_NOTE_PLURAL : EXPERIMENTAL_NOTE}
+        {detail && <> {detail}</>}
+      </span>
+    </p>
   );
 }

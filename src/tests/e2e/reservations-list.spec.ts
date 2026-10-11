@@ -11,9 +11,11 @@ async function open(page: Page, url: string) {
   await page.waitForLoadState('networkidle');
 }
 const alertIn = (page: Page) => page.getByRole('main').getByRole('alert');
+const detailLink = (page: Page, id: string) =>
+  page.getByRole('link', { name: `Ver detalle de Reserva #${id}` });
 const rowOf = (page: Page, id: string) => table(page).getByRole('row').filter({ hasText: id });
-const rowLink = (page: Page, id: string) =>
-  table(page).getByRole('link', { name: `#${id}`, exact: true });
+const TECHNICAL_JARGON =
+  /HU-\d|Sprint|EXPLORATORY_NOT_VALIDATED|NO_SHOW_CANDIDATE|NOT_SCORABLE|NOT_SCORED|FRONTEND_DATA_MODE|requestId|ID de solicitud/;
 
 function trackErrors(page: Page) {
   const errors: string[] = [];
@@ -24,76 +26,89 @@ function trackErrors(page: Page) {
   return errors;
 }
 
-test('carga el listado con estados predictivos, sin niveles de riesgo ni errores', async ({
+async function noHorizontalOverflow(page: Page) {
+  return page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+}
+
+test('carga el listado con estimaciones, sin niveles de riesgo, jerga técnica ni errores', async ({
   page,
 }) => {
   const errors = trackErrors(page);
   await open(page, '/');
   await expect(page).toHaveURL(/\/reservations$/);
-  await expect(page.getByRole('heading', { level: 1, name: 'Reservas programadas' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Gestión de reservas' })).toBeVisible();
+  await expect(page.getByText('Consulta y seguimiento de citas programadas.')).toBeVisible();
   await expect(page.getByRole('note')).toContainText('No son resultados reales');
   await expect(table(page).getByRole('row')).toHaveCount(8); // encabezado + 7 reservas programadas
   const both = rowOf(page, '900000000001001');
   await expect(both).toContainText('31 %');
   await expect(both).toContainText('27.4 %');
-  await expect(rowOf(page, '900000000001002')).toContainText('No evaluable');
-  await expect(
-    page.getByText('Clasificación de riesgo pendiente de validación.', { exact: false }),
-  ).toBeVisible();
+  await expect(rowOf(page, '900000000001002')).toContainText('Sin estimación');
+  await expect(page.getByText(/Estimaciones experimentales/)).toHaveCount(1);
   await expect(page.getByText(/riesgo (bajo|medio|alto)/i)).toHaveCount(0);
   await expect(
     page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link'),
   ).toHaveCount(1);
+  // APP_ENV=production: sin herramientas técnicas ni referencias académicas.
+  await expect(page.getByRole('button', { name: /Diagnóstico/ })).toHaveCount(0);
+  expect(await page.locator('body').innerText()).not.toMatch(TECHNICAL_JARGON);
   expect(errors).toEqual([]);
 });
 
-test('aplica filtros y orden exploratorio, conservándolos en la URL', async ({ page }) => {
+test('aplica filtros principales y avanzados, conservándolos en la URL', async ({ page }) => {
   await open(page, '/reservations');
   await page.getByLabel('Estado').selectOption('CANCELLED');
   await page.getByRole('button', { name: 'Aplicar filtros' }).click();
   await expect(page).toHaveURL(/status=CANCELLED/);
-  await expect(rowLink(page, '900000000001006')).toBeVisible();
+  await expect(detailLink(page, '900000000001006')).toBeVisible();
   await expect(table(page).getByText('Cancelada', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Restablecer' }).click();
   await expect(page).toHaveURL(/\/reservations$/);
+  await expect(page.getByLabel('Ordenar por')).toBeHidden();
+  await page.getByRole('button', { name: /Más filtros/ }).click();
   await page.getByLabel('Ordenar por').selectOption('probabilityNoShow');
   await page.getByLabel('Dirección').selectOption('desc');
   await page.getByRole('button', { name: 'Aplicar filtros' }).click();
   await expect(page).toHaveURL(/sort=probabilityNoShow&direction=desc/);
-  await expect(
-    page.getByText(/Orden exploratorio por la probabilidad de Random Forest/),
-  ).toBeVisible();
+  await expect(page.getByText(/Ordenadas por estimación de Random Forest/)).toBeVisible();
+  await expect(page.getByRole('button', { name: /Más filtros/ })).toContainText('2');
   await expect(table(page).getByRole('row').nth(1)).toContainText('900000000001001');
   expect(page.url()).not.toContain('riskLevel');
 });
 
 test('ignora riskLevel en la URL con un aviso y no lo envía al backend', async ({ page }) => {
   await open(page, '/reservations?riskLevel=LOW&sort=riskLevel');
-  await expect(page.getByText('Se ajustaron parámetros de la URL')).toBeVisible();
-  await expect(page.getByText(/Se ignoró el filtro por nivel de riesgo/)).toBeVisible();
+  await expect(page.getByText('Ajustamos algunos filtros')).toBeVisible();
+  await expect(
+    page.getByText(/La clasificación por nivel de riesgo todavía no está disponible/),
+  ).toBeVisible();
   // El backend simulado responde 409 si recibiera riskLevel: el listado carga normalmente.
-  await expect(rowLink(page, '900000000001001')).toBeVisible();
-  await expect(page.getByText('Política de riesgo no validada')).toHaveCount(0);
+  await expect(detailLink(page, '900000000001001')).toBeVisible();
+  await expect(page.getByText('Clasificación de riesgo no disponible')).toHaveCount(0);
 });
 
-test('valida el período antes de consultar', async ({ page }) => {
+test('valida el período antes de consultar y muestra un estado vacío claro', async ({ page }) => {
   await open(page, '/reservations?from=2026-12-10&to=2026-12-01');
-  await expect(page.getByText('Período inválido')).toBeVisible();
+  await expect(page.getByText('Período no válido')).toBeVisible();
   await expect(page.getByRole('table')).toHaveCount(0);
   await open(page, '/reservations?from=2030-01-01&to=2030-01-10');
-  await expect(page.getByText('No hay reservas programadas en este período')).toBeVisible();
+  await expect(page.getByText('No encontramos reservas')).toBeVisible();
+  await expect(page.getByText('Prueba con otro período o modifica los filtros.')).toBeVisible();
+  await page.getByRole('link', { name: 'Restablecer filtros' }).click();
+  await expect(page).toHaveURL(/\/reservations$/);
 });
 
 test('pagina con cursor opaco: siguiente, anterior y reseteo al filtrar', async ({ page }) => {
   await open(page, '/reservations?limit=3');
-  await expect(page.getByText('Página 1 · 3 reservas en esta página')).toBeVisible();
+  await expect(page.getByText('3 reservas en esta página', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Anterior' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Siguiente' }).click();
-  await expect(page.getByText(/Página 2 · 3 reservas/)).toBeVisible();
+  await expect(page.getByText('Página 2 · 3 reservas en esta página')).toBeVisible();
   await expect(page).toHaveURL(/cursor=/);
+  await expect(page).toHaveURL(/limit=3/);
   await page.getByRole('link', { name: 'Siguiente' }).click();
-  await expect(page.getByText(/Página 3 · 1 reserva en esta página/)).toBeVisible();
+  await expect(page.getByText('Página 3 · 1 reserva en esta página')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Siguiente' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Anterior' }).click();
   await expect(page.getByText(/Página 2/)).toBeVisible();
@@ -101,56 +116,64 @@ test('pagina con cursor opaco: siguiente, anterior y reseteo al filtrar', async 
   await expect(page).not.toHaveURL(/cursor=/);
 });
 
-test('cursor inválido y errores del backend se muestran dentro de la página', async ({ page }) => {
+test('errores del backend en lenguaje claro, dentro de la página y sin datos técnicos', async ({
+  page,
+}) => {
   await open(page, '/reservations?cursor=bad_cursor');
-  await expect(alertIn(page)).toContainText('Cursor de paginación inválido');
+  await expect(alertIn(page)).toContainText('Esta página ya no está disponible');
   await page.getByRole('link', { name: 'Ir a la primera página' }).click();
-  await expect(rowLink(page, '900000000001001')).toBeVisible();
+  await expect(detailLink(page, '900000000001001')).toBeVisible();
 
   await open(page, '/reservations?clinicId=999');
-  await expect(alertIn(page)).toContainText('Clínica desconocida');
+  await expect(alertIn(page)).toContainText('No encontramos esa sede');
+  await expect(page.getByRole('link', { name: 'Quitar filtro de sede' })).toBeVisible();
   await open(page, '/reservations?clinicId=503');
-  await expect(alertIn(page)).toContainText('Fuente de reservas no disponible');
-  await expect(alertIn(page)).toContainText('ID de solicitud');
+  await expect(alertIn(page)).toContainText('No pudimos cargar las reservas');
+  await expect(alertIn(page)).toContainText('Intenta actualizar la información.');
+  await expect(alertIn(page)).not.toContainText(/SOURCE_DATA_UNAVAILABLE|503|solicitud/);
   await expect(page.getByRole('button', { name: 'Reintentar' })).toBeVisible();
   await open(page, '/reservations?clinicId=401');
-  await expect(alertIn(page)).toContainText('Acceso interno no autorizado');
+  await expect(alertIn(page)).toContainText('No pudimos cargar las reservas');
+  await expect(alertIn(page)).not.toContainText('UNAUTHORIZED');
 });
 
 test('navegación por teclado en filtros y acceso al detalle', async ({ page }) => {
   await open(page, '/reservations');
   await page.getByLabel('Estado').focus();
   await page.keyboard.press('Tab');
-  await expect(page.getByLabel('Clínica (ID)')).toBeFocused();
+  await expect(page.getByLabel('Sede')).toBeFocused();
   await page.keyboard.type('2');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/clinicId=2/);
   await expect(table(page).getByRole('row')).toHaveCount(3);
-  await rowLink(page, '900000000001001').focus();
+  await detailLink(page, '900000000001001').focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('900000000001001');
   await page.getByRole('link', { name: 'Volver a reservas' }).click();
   await expect(page).toHaveURL(/clinicId=2/);
-  await expect(page.getByLabel('Clínica (ID)')).toHaveValue('2');
+  await expect(page.getByLabel('Sede')).toHaveValue('2');
 });
 
 test('responsive móvil: tarjetas sin desbordamiento horizontal', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await open(page, '/reservations');
-  await expect(page.getByRole('link', { name: /Reserva #900000000001001/ })).toBeVisible();
+  await expect(detailLink(page, '900000000001001')).toBeVisible();
   await expect(page.getByRole('table')).toBeHidden();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-    true,
-  );
+  expect(await noHorizontalOverflow(page)).toBe(true);
   await page.screenshot({ path: 'test-results/reservations-mobile.png', fullPage: true });
 });
 
-test('responsive escritorio', async ({ page }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
+test('responsive tablet (tarjetas) y escritorio (tabla) sin desbordamiento', async ({ page }) => {
+  await page.setViewportSize({ width: 820, height: 1180 });
   await open(page, '/reservations');
+  await expect(page.getByRole('table')).toBeHidden();
+  await expect(detailLink(page, '900000000001001')).toBeVisible();
+  expect(await noHorizontalOverflow(page)).toBe(true);
+  await page.screenshot({ path: 'test-results/reservations-tablet.png', fullPage: true });
+
+  await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page.getByRole('table')).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
-    true,
-  );
+  await expect(page.getByRole('columnheader', { name: 'Cliente' })).toBeVisible();
+  expect(await noHorizontalOverflow(page)).toBe(true);
   await page.screenshot({ path: 'test-results/reservations-desktop.png', fullPage: true });
 });

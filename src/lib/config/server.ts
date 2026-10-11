@@ -69,3 +69,14 @@ export function getPublicDataMode(): DataMode | 'misconfigured' {
   const config = getServerConfig();
   return config.ok ? config.mode : 'misconfigured';
 }
+
+/** Estado del origen de datos para diagnósticos de desarrollo: nunca incluye URL ni credencial. */
+export function getDataSourceStatus(): {
+  mode: DataMode | 'misconfigured';
+  problem: ConfigProblem | null;
+} {
+  const config = getServerConfig();
+  return config.ok
+    ? { mode: config.mode, problem: null }
+    : { mode: 'misconfigured', problem: config.problem };
+}

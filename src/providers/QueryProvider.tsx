@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { type ReactNode, useState } from 'react';
 
+import { usePresentation } from '@/providers/PresentationProvider';
+
 /**
  * Las consultas interactivas (historial por modo, explicaciones SHAP) devuelven `ApiResult`:
  * los errores funcionales no lanzan excepciones. No hay reintentos ni refetch automáticos;
@@ -25,11 +27,13 @@ export function createQueryClient() {
 
 export function QueryProvider({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createQueryClient);
+  // Las herramientas de TanStack solo acompañan al diagnóstico de desarrollo (APP_ENV).
+  const { diagnosticsEnabled } = usePresentation();
 
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+      {diagnosticsEnabled && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );
 }

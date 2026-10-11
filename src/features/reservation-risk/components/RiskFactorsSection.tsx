@@ -6,7 +6,6 @@ import {
 } from '@/features/prediction-models/model/model-identity';
 import type { RiskAssessment } from '@/features/reservation-risk/api/risk.contract';
 import { RiskFactorsPanel } from '@/features/reservation-risk/components/RiskFactorsPanel';
-import { NON_CAUSAL_NOTE } from '@/features/reservation-risk/model/factors';
 import type { ApiResult } from '@/lib/api/result';
 
 interface Props {
@@ -15,32 +14,35 @@ interface Props {
   catalog: ApiResult<ModelCatalog>;
 }
 
-function unavailableReason(risk: ApiResult<RiskAssessment>): string | null {
-  if (risk.ok && risk.data.status === 'NOT_SCORABLE') {
-    return 'La explicación no está disponible: la reserva no es evaluable con la evidencia temporal actual.';
-  }
-  return null;
-}
+const TITLE = 'Factores relacionados con la estimación';
 
-/** HU-05: factores asociados (SHAP). Bloque secundario, sin carga automática. */
+/**
+ * HU-05: factores asociados (SHAP) en lista, sin gráficos ni carga automática. Sin estimación
+ * posible (NOT_SCORABLE) la sección queda compacta y secundaria.
+ */
 export function RiskFactorsSection({ reservationId, risk, catalog }: Props) {
-  const keys = selectableModelKeys(catalog.ok ? catalog.data : null);
-  const options = keys.map((modelKey) => ({
+  if (risk.ok && risk.data.status === 'NOT_SCORABLE') {
+    return (
+      <SectionCard title={TITLE}>
+        <p className="-mt-1 text-[13px] text-muted-foreground">
+          Los factores de esta estimación no están disponibles.
+        </p>
+      </SectionCard>
+    );
+  }
+
+  const models = catalog.ok ? catalog.data : null;
+  const options = selectableModelKeys(models).map((modelKey) => ({
     modelKey,
-    label: resolveModelIdentity(modelKey, catalog.ok ? catalog.data : null).label,
+    label: resolveModelIdentity(modelKey, models).label,
   }));
 
   return (
     <SectionCard
-      title="Factores asociados a la estimación"
-      description="Explicación local SHAP bajo demanda (HU-05)"
-      footer={NON_CAUSAL_NOTE}
+      title={TITLE}
+      description="Consulta qué datos tuvieron más peso en el cálculo de un modelo."
     >
-      <RiskFactorsPanel
-        reservationId={reservationId}
-        modelOptions={options}
-        unavailableReason={unavailableReason(risk)}
-      />
+      <RiskFactorsPanel reservationId={reservationId} modelOptions={options} />
     </SectionCard>
   );
 }

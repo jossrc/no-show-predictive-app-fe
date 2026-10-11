@@ -48,13 +48,13 @@ export default async function ReservationDetailPage({ params, searchParams }: Pa
         backHref={resolveBackHref(search.back)}
         detail={detail}
       />
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px]">
         <div className="min-w-0 space-y-5">
+          <ReservationFacts detail={detail} />
           <RiskSection reservationId={reservationId} risk={risk} catalog={catalog} />
           <RiskFactorsSection reservationId={reservationId} risk={risk} catalog={catalog} />
         </div>
-        <div className="min-w-0 space-y-5">
-          <ReservationFacts detail={detail} />
+        <div className="min-w-0">
           <ClientHistorySection reservationId={reservationId} initial={history} />
         </div>
       </div>

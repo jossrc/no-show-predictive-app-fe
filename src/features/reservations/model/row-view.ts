@@ -1,5 +1,4 @@
 import type { ModelCatalog } from '@/features/prediction-models/api/contract';
-import type { PredictionAvailability } from '@/features/reservation-risk/api/risk.contract';
 import { type ScoreView, toScoreViews } from '@/features/reservation-risk/model/score-view';
 import type { ReservationListItem, ReservationStatus } from '@/features/reservations/api/contract';
 import { formatClinicLabel } from '@/features/reservations/model/labels';
@@ -8,6 +7,7 @@ import { formatLimaDate, formatLimaTime, formatLimaWeekday } from '@/lib/dates/l
 
 export interface ReservationRowView {
   reservationId: string;
+  clientId: string;
   detailHref: string;
   weekday: string;
   date: string;
@@ -16,7 +16,6 @@ export interface ReservationRowView {
   status: ReservationStatus;
   stale: boolean;
   rescheduled: boolean;
-  availability: PredictionAvailability;
   scores: ScoreView[];
 }
 
@@ -27,6 +26,7 @@ export function toReservationRowView(
 ): ReservationRowView {
   return {
     reservationId: item.reservationId,
+    clientId: item.clientId,
     detailHref: buildDetailHref(item.reservationId, context.listHref),
     weekday: formatLimaWeekday(item.appointmentAt),
     date: formatLimaDate(item.appointmentAt),
@@ -35,7 +35,6 @@ export function toReservationRowView(
     status: item.reservationStatus,
     stale: item.sourceFreshness === 'STALE_CLASSIFICATION',
     rescheduled: item.hasRescheduleEvent,
-    availability: item.risk.predictionAvailability,
     // Una probabilidad solo se muestra si existe un score persistido; nunca 0 % por omisión.
     scores: toScoreViews(item.risk.probabilities, context.selectedModelKey, context.catalog),
   };

@@ -21,16 +21,30 @@ async function setDate(user: ReturnType<typeof userEvent.setup>, label: string, 
   await user.type(input, value);
 }
 
+const moreFilters = () => screen.getByRole('button', { name: /Más filtros/ });
+
 beforeEach(() => push.mockClear());
 
 describe('Filtros de reservas (HU-03)', () => {
-  it('aplica fechas, estado y clínica en una URL nueva sin cursor ni riskLevel', async () => {
+  it('muestra a la vista solo los filtros principales', () => {
+    render(<ReservationFilters initial={initial} />);
+    for (const label of ['Desde', 'Hasta', 'Estado', 'Sede']) {
+      expect(screen.getByLabelText(label)).toBeVisible();
+    }
+    for (const label of ['Ordenar por', 'Dirección', 'Modelo', 'Por página']) {
+      expect(screen.getByLabelText(label)).not.toBeVisible();
+    }
+    expect(moreFilters()).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'Aplicar filtros' })).toBeVisible();
+  });
+
+  it('aplica fechas, estado y sede en una URL nueva sin cursor ni riskLevel', async () => {
     const user = userEvent.setup();
     render(<ReservationFilters initial={initial} />);
     await setDate(user, 'Desde', '2026-12-01');
     await setDate(user, 'Hasta', '2026-12-31');
     await user.selectOptions(screen.getByLabelText('Estado'), 'CANCELLED');
-    await user.type(screen.getByLabelText('Clínica (ID)'), '11');
+    await user.type(screen.getByLabelText('Sede'), '11');
     await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
 
     await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
@@ -45,14 +59,17 @@ describe('Filtros de reservas (HU-03)', () => {
     expect(params.has('cursor')).toBe(false);
   });
 
-  it('aplica el orden exploratorio por probabilidad, dirección y modelo', async () => {
+  it('«Más filtros»: orden por estimación, dirección, modelo y tamaño de página', async () => {
     const user = userEvent.setup();
     render(<ReservationFilters initial={initial} />);
+    await user.click(moreFilters());
+    expect(moreFilters()).toHaveAttribute('aria-expanded', 'true');
     await user.selectOptions(screen.getByLabelText('Ordenar por'), 'probabilityNoShow');
-    expect(screen.getByText(/no es una priorización operativa validada/)).toBeVisible();
+    expect(screen.getByText(/no es una priorización validada/)).toBeVisible();
     await user.selectOptions(screen.getByLabelText('Dirección'), 'desc');
     await user.selectOptions(screen.getByLabelText('Modelo'), 'xgboost_full_v1');
     await user.selectOptions(screen.getByLabelText('Por página'), '50');
+    expect(moreFilters()).toHaveTextContent('4 activos');
     await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
 
     await waitFor(() => expect(push).toHaveBeenCalled());
@@ -62,6 +79,15 @@ describe('Filtros de reservas (HU-03)', () => {
       modelKey: 'xgboost_full_v1',
       limit: '50',
     });
+  });
+
+  it('un filtro avanzado activo se conserva y es perceptible con el panel cerrado', async () => {
+    const user = userEvent.setup();
+    render(<ReservationFilters initial={{ ...initial, sort: 'probabilityNoShow' }} />);
+    expect(moreFilters()).toHaveTextContent('1 activo');
+    await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
+    await waitFor(() => expect(push).toHaveBeenCalled());
+    expect(pushedParams().get('sort')).toBe('probabilityNoShow');
   });
 
   it('no ofrece orden ni filtro por nivel de riesgo', () => {
@@ -86,15 +112,15 @@ describe('Filtros de reservas (HU-03)', () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it('impide un rango mayor de 92 días y una clínica no numérica', async () => {
+  it('impide un rango mayor de 92 días y una sede no numérica', async () => {
     const user = userEvent.setup();
     render(<ReservationFilters initial={initial} />);
     await setDate(user, 'Desde', '2026-01-01');
     await setDate(user, 'Hasta', '2026-06-30');
-    await user.type(screen.getByLabelText('Clínica (ID)'), 'sede');
+    await user.type(screen.getByLabelText('Sede'), 'sede');
     await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
     expect(await screen.findByText('El período no puede superar 92 días.')).toBeVisible();
-    expect(screen.getByText(/identificador numérico de clínica/)).toBeVisible();
+    expect(screen.getByText('Ingresa el número de sede (por ejemplo, 11).')).toBeVisible();
     expect(push).not.toHaveBeenCalled();
   });
 

@@ -26,7 +26,7 @@ export const filtersFormSchema = z
       .trim()
       .refine(
         (value) => value === '' || isValidClinicId(value),
-        'Usa un identificador numérico de clínica (por ejemplo, 11).',
+        'Ingresa el número de sede (por ejemplo, 11).',
       ),
     sort: z.enum(SORT_FIELDS),
     direction: z.enum(SORT_DIRECTIONS),

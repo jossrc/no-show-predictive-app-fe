@@ -1,37 +1,29 @@
 import type { ScoreView } from '@/features/reservation-risk/model/score-view';
 import { cn } from '@/lib/utils';
 
+export const NO_ESTIMATE_TEXT = 'Sin estimación';
+
 /**
- * Probabilidades persistidas por modelo, identificadas por su clave. Sin score se muestra un
- * guion con texto accesible: nunca `0 %`.
+ * Probabilidades persistidas por modelo, con el modelo elegido en los filtros primero (y
+ * destacado). Sin score se indica «Sin estimación»: nunca `0 %`. Sin colores de riesgo.
  */
-export function ScoreList({ scores, emptyLabel }: { scores: ScoreView[]; emptyLabel: string }) {
+export function ScoreList({ scores }: { scores: ScoreView[] }) {
   if (scores.length === 0) {
-    return (
-      <span className="text-muted-foreground">
-        <span aria-hidden="true">—</span>
-        <span className="sr-only">{emptyLabel}</span>
-      </span>
-    );
+    return <span className="text-[13px] text-muted-foreground">{NO_ESTIMATE_TEXT}</span>;
   }
   return (
     <ul className="space-y-0.5">
-      {scores.map((score) => (
-        <li key={score.modelKey} className="flex items-baseline gap-2 tabular-nums">
-          <span
-            title={score.label}
-            className="w-8 shrink-0 text-[11px] font-medium tracking-wide text-muted-foreground uppercase"
-          >
-            {score.shortLabel}
-            <span className="sr-only"> ({score.label})</span>
-          </span>
+      {scores.map((score, index) => (
+        <li key={score.modelKey} className="flex items-baseline gap-2 whitespace-nowrap">
           <span
             className={cn(
-              score.selected ? 'font-semibold text-foreground' : 'text-muted-foreground',
+              'min-w-[3.25rem] tabular-nums',
+              index === 0 ? 'font-semibold text-foreground' : 'text-muted-foreground',
             )}
           >
             {score.percentageText}
           </span>
+          <span className="text-xs text-muted-foreground">{score.label}</span>
         </li>
       ))}
     </ul>

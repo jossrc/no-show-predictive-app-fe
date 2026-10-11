@@ -7,11 +7,11 @@ import { ThemeProvider } from '@/providers/ThemeProvider';
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/reservations/900000000001001' }));
 
-describe('Layout del Sprint 01', () => {
+describe('Layout general', () => {
   it('navegación compacta enfocada en reservas, con ruta activa en el detalle', () => {
     render(
       <ThemeProvider>
-        <AppShell statusSlot={<span>Estado ML</span>}>
+        <AppShell>
           <h1>Contenido de prueba</h1>
         </AppShell>
       </ThemeProvider>,
@@ -24,17 +24,27 @@ describe('Layout del Sprint 01', () => {
     for (const removed of ['Reportes', 'Configuración', 'Modelos', 'Inicio']) {
       expect(screen.queryByRole('link', { name: removed })).not.toBeInTheDocument();
     }
-    expect(screen.getByText('Estado ML')).toBeVisible();
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content');
     expect(screen.getByRole('link', { name: 'Ir al contenido' })).toHaveAttribute(
       'href',
       '#main-content',
     );
+    expect(screen.getByRole('button', { name: 'Cambiar tema' })).toBeVisible();
   });
 
-  it('advierte el modo de datos de prueba y no muestra nada en LIVE', () => {
+  it('sin footer académico, usuario ficticio ni indicadores de infraestructura', () => {
+    render(<AppShell>contenido</AppShell>);
+    expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(
+      /Sprint|Core predictivo|Tesis|HU-|EXPLORATORY_NOT_VALIDATED|NO_SHOW_CANDIDATE|ML disponible/,
+    );
+    expect(screen.queryByRole('img', { name: /avatar|perfil/i })).not.toBeInTheDocument();
+  });
+
+  it('advierte el modo de datos de prueba sin nombres de variables y no muestra nada en LIVE', () => {
     const { rerender } = render(<DataModeBanner mode="mock" />);
     expect(screen.getByRole('note')).toHaveTextContent('No son resultados reales');
+    expect(screen.getByRole('note')).not.toHaveTextContent('FRONTEND_DATA_MODE');
     rerender(<DataModeBanner mode="live" />);
     expect(screen.queryByRole('note')).not.toBeInTheDocument();
   });

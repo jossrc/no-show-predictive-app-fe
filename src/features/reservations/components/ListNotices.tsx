@@ -1,63 +1,58 @@
 import { Notice } from '@/components/shared/Notice';
-import { resolveModelIdentity } from '@/features/prediction-models/model/model-identity';
-import {
-  describeSourceStatus,
-  EXPLORATORY_STATUS_TEXT,
-  RISK_POLICY_PENDING_TEXT,
-} from '@/features/reservation-risk/model/availability';
 import type { ReservationList } from '@/features/reservations/api/contract';
-import { formatLimaDateTime } from '@/lib/dates/lima';
 
-function staleSummary(list: ReservationList): string | null {
-  const stale = list.data.filter((item) => item.sourceFreshness === 'STALE_CLASSIFICATION');
-  if (stale.length === 0) return null;
-  const cutoff = stale.find((item) => item.classificationCutoffAt)?.classificationCutoffAt;
-  const count = stale.length === 1 ? '1 reserva' : `${stale.length} reservas`;
-  const cutoffText = cutoff ? ` (corte de clasificación: ${formatLimaDateTime(cutoff)})` : '';
-  return `${count} de esta página tiene${stale.length === 1 ? '' : 'n'} la clasificación desactualizada${cutoffText}: la cita ya pasó y su estado puede no reflejar el resultado final.`;
-}
+type NoticeItem = { key: string; tone: 'neutral' | 'warning'; text: string };
 
-/** Avisos derivados exclusivamente de campos de la respuesta del listado. */
-export function ListNotices({ list }: { list: ReservationList }) {
-  const stale = staleSummary(list);
+/**
+ * Avisos del listado priorizados y sin duplicados: como máximo uno sobre estimaciones, uno sobre
+ * actualización y uno sobre el origen de los datos. Solo se derivan de la respuesta del backend.
+ */
+export function listNotices(list: ReservationList, dataMode: string): NoticeItem[] {
+  const notices: NoticeItem[] = [];
   const withoutScores =
     list.data.length > 0 && list.data.every((item) => item.risk.probabilities.length === 0);
-  const exploratoryOrder = list.sort.semantics === 'EXPLORATORY_SCORE_ORDER';
 
-  return (
-    <>
-      {list.sourceStatus === 'SYNTHETIC_DEMO_ONLY' && (
-        <Notice tone="warning" title="Fuente sintética">
-          El backend informa que estos datos provienen de una base de demostración sintética.
-        </Notice>
-      )}
-      {!list.predictiveStoreAvailable && (
-        <Notice tone="warning" title="Almacén predictivo no disponible">
-          Las probabilidades persistidas no pudieron consultarse. Los datos de las reservas siguen
-          siendo válidos.
-        </Notice>
-      )}
-      {stale && <Notice tone="warning">{stale}</Notice>}
-      {exploratoryOrder && (
-        <Notice>
-          Orden exploratorio por la probabilidad de {resolveModelIdentity(list.sort.modelKey).label}{' '}
-          (reservas sin estimación al final). No constituye una priorización operativa validada.
-        </Notice>
-      )}
-      {withoutScores && (
-        <Notice>Ninguna reserva de esta página tiene probabilidades registradas.</Notice>
-      )}
-    </>
-  );
+  if (!list.predictiveStoreAvailable) {
+    notices.push({
+      key: 'estimates-error',
+      tone: 'warning',
+      text: 'Las reservas están disponibles, pero no podemos consultar sus estimaciones en este momento.',
+    });
+  } else if (withoutScores) {
+    notices.push({
+      key: 'without-estimates',
+      tone: 'neutral',
+      text: 'Las estimaciones no están disponibles para estas citas.',
+    });
+  }
+  if (list.data.some((item) => item.sourceFreshness === 'STALE_CLASSIFICATION')) {
+    notices.push({
+      key: 'stale',
+      tone: 'neutral',
+      text: 'La información de algunas citas podría requerir actualización.',
+    });
+  }
+  // En modo de prueba el banner global ya advierte que los datos son simulados.
+  if (list.sourceStatus === 'SYNTHETIC_DEMO_ONLY' && dataMode !== 'mock') {
+    notices.push({
+      key: 'synthetic',
+      tone: 'neutral',
+      text: 'Estas citas provienen de datos de demostración, no de la agenda real.',
+    });
+  }
+  return notices;
 }
 
-export function ListLegend({ list }: { list: ReservationList }) {
+export function ListNotices({ list, dataMode }: { list: ReservationList; dataMode: string }) {
+  const notices = listNotices(list, dataMode);
+  if (notices.length === 0) return null;
   return (
-    <p className="text-xs leading-relaxed text-muted-foreground">
-      {EXPLORATORY_STATUS_TEXT}. Las probabilidades estiman la etiqueta proxy NO_SHOW_CANDIDATE y no
-      equivalen a certeza de inasistencia.{' '}
-      {list.riskPolicyStatus === 'pending_validation' && RISK_POLICY_PENDING_TEXT} Fuente:{' '}
-      {describeSourceStatus(list.sourceStatus)}.
-    </p>
+    <div className="space-y-2">
+      {notices.map((notice) => (
+        <Notice key={notice.key} tone={notice.tone}>
+          {notice.text}
+        </Notice>
+      ))}
+    </div>
   );
 }

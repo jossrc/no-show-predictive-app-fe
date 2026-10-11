@@ -20,15 +20,15 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <div className={cn('flex flex-col items-center px-6 py-10 text-center', className)}>
-      <span className="mb-3 flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
-        <Icon aria-hidden="true" className="size-4" />
+    <div className={cn('flex flex-col items-center px-6 py-12 text-center', className)}>
+      <span className="mb-4 flex size-10 items-center justify-center rounded-xl bg-accent text-accent-foreground">
+        <Icon aria-hidden="true" className="size-5" />
       </span>
-      <p className="text-sm font-medium">{title}</p>
+      <p className="text-[15px] font-semibold tracking-tight">{title}</p>
       {description && (
         <p className="mt-1 max-w-md text-sm text-pretty text-muted-foreground">{description}</p>
       )}
-      {action && <div className="mt-4">{action}</div>}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 }

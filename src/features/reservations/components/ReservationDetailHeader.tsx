@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CalendarDays, MapPin } from 'lucide-react';
 import Link from 'next/link';
 
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -7,7 +7,7 @@ import type { ReservationDetail } from '@/features/reservations/api/contract';
 import { ReservationStatusBadge } from '@/features/reservations/components/ReservationStatusBadge';
 import { formatClinicLabel } from '@/features/reservations/model/labels';
 import type { ApiResult } from '@/lib/api/result';
-import { formatLimaDateTime, formatLimaWeekday } from '@/lib/dates/lima';
+import { formatLimaLongDate, formatLimaTime } from '@/lib/dates/lima';
 
 interface Props {
   reservationId: string;
@@ -15,6 +15,11 @@ interface Props {
   detail: ApiResult<ReservationDetail>;
 }
 
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** Encabezado compacto: lo esencial de la cita (fecha, hora, sede y estado) a primera vista. */
 export function ReservationDetailHeader({ reservationId, backHref, detail }: Props) {
   const reservation = detail.ok ? detail.data : null;
   return (
@@ -22,33 +27,40 @@ export function ReservationDetailHeader({ reservationId, backHref, detail }: Pro
       eyebrow={
         <Link
           href={backHref}
-          className="mb-1 inline-flex items-center gap-1 rounded-sm text-xs text-muted-foreground hover:text-foreground"
+          className="mb-1 inline-flex items-center gap-1.5 rounded-sm text-[13px] font-medium text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft aria-hidden="true" className="size-3.5" />
+          <ArrowLeft aria-hidden="true" className="size-4" />
           Volver a reservas
         </Link>
       }
       title={
         <>
-          Reserva <span className="font-mono font-medium tabular-nums">#{reservationId}</span>
+          Reserva <span className="break-all tabular-nums">#{reservationId}</span>
         </>
       }
-      actions={<RefreshButton />}
-    >
-      {reservation && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 pt-1 text-sm text-muted-foreground">
+      titleAddon={
+        reservation && (
           <ReservationStatusBadge
             status={reservation.reservationStatus}
             stale={reservation.sourceFreshness === 'STALE_CLASSIFICATION'}
             rescheduled={reservation.hasRescheduleEvent}
           />
-          <span className="tabular-nums">
-            {formatLimaWeekday(reservation.appointmentAt)}{' '}
-            {formatLimaDateTime(reservation.appointmentAt)}
+        )
+      }
+      actions={<RefreshButton />}
+    >
+      {reservation && (
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-0.5 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 tabular-nums">
+            <CalendarDays aria-hidden="true" className="size-4" />
+            {capitalize(formatLimaLongDate(reservation.appointmentAt))} ·{' '}
+            {formatLimaTime(reservation.appointmentAt)}
           </span>
-          <span aria-hidden="true">·</span>
-          <span>{formatClinicLabel(reservation.clinicId)}</span>
-        </div>
+          <span className="inline-flex items-center gap-1.5">
+            <MapPin aria-hidden="true" className="size-4" />
+            {formatClinicLabel(reservation.clinicId)}
+          </span>
+        </p>
       )}
     </PageHeader>
   );

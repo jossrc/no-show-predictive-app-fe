@@ -10,14 +10,20 @@ import { cn } from '@/lib/utils';
 /**
  * Vuelve a consultar la ruta actual en el servidor (sin caché). Nunca ejecuta mutaciones.
  */
-export function RefreshButton({ label = 'Actualizar' }: { label?: string }) {
+export function RefreshButton({
+  label = 'Actualizar',
+  size = 'default',
+}: {
+  label?: string;
+  size?: 'default' | 'sm';
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   return (
     <Button
       variant="outline"
-      size="sm"
+      size={size}
       disabled={pending}
       aria-busy={pending}
       onClick={() => startTransition(() => router.refresh())}

@@ -11,7 +11,7 @@ export default function ReservationDetailError({
 }) {
   return (
     <ErrorState
-      title="No se pudo mostrar el detalle de la reserva"
+      title="No pudimos mostrar el detalle de la reserva"
       digest={error.digest}
       onRetry={retry}
     />

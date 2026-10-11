@@ -9,24 +9,27 @@ interface CursorPaginationProps {
   /** Solo existe cuando el backend devuelve `pagination.nextCursor`. */
   nextHref: string | null;
   firstHref: string;
-  pageSize: number;
   rowCount: number;
+}
+
+export function describePageCount(pageNumber: number, rowCount: number): string {
+  const rows = `${rowCount} ${rowCount === 1 ? 'reserva' : 'reservas'} en esta página`;
+  return pageNumber > 1 ? `Página ${pageNumber} · ${rows}` : rows;
 }
 
 /**
  * Paginación keyset: sin totales ni número de páginas (el backend no los proporciona).
- * El cursor es opaco; el historial de cursores vive en la URL.
+ * El cursor es opaco; el historial de cursores vive en la URL junto con los filtros.
  */
 export function CursorPagination(props: CursorPaginationProps) {
-  const { pageNumber, previousHref, nextHref, firstHref, pageSize, rowCount } = props;
+  const { pageNumber, previousHref, nextHref, firstHref, rowCount } = props;
   return (
     <nav
       aria-label="Paginación de reservas"
-      className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+      className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
     >
-      <p className="text-xs text-muted-foreground tabular-nums">
-        Página {pageNumber} · {rowCount} {rowCount === 1 ? 'reserva' : 'reservas'} en esta página
-        (máximo {pageSize})
+      <p className="text-[13px] text-muted-foreground tabular-nums">
+        {describePageCount(pageNumber, rowCount)}
       </p>
       <div className="flex items-center gap-2">
         {pageNumber > 2 && (
@@ -50,20 +53,14 @@ function PaginationLink({
   label: string;
   direction: 'previous' | 'next';
 }) {
-  const icon =
-    direction === 'previous' ? (
-      <ChevronLeft aria-hidden="true" />
-    ) : (
-      <ChevronRight aria-hidden="true" />
-    );
   // «Siguiente» solo existe con `nextCursor`; «Anterior» solo fuera de la primera página.
   if (!href) return null;
   return (
     <Button asChild variant="outline" size="sm">
       <Link href={href} rel={direction === 'next' ? 'next' : 'prev'}>
-        {direction === 'previous' && icon}
+        {direction === 'previous' && <ChevronLeft aria-hidden="true" />}
         {label}
-        {direction === 'next' && icon}
+        {direction === 'next' && <ChevronRight aria-hidden="true" />}
       </Link>
     </Button>
   );

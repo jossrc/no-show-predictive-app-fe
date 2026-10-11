@@ -7,9 +7,9 @@ import {
 export default function ReservationsLoading() {
   return (
     <>
-      <div aria-hidden="true" className="mb-6 space-y-2">
-        <Skeleton className="h-7 w-56" />
-        <Skeleton className="h-4 w-96 max-w-full" />
+      <div aria-hidden="true" className="mb-7 space-y-2.5">
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-4 w-80 max-w-full" />
       </div>
       <FiltersSkeleton />
       <ReservationsResultsSkeleton />

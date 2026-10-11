@@ -47,7 +47,7 @@ export function predictionRequestAvailability(
   if (risk.status === 'NOT_SCORABLE') {
     return {
       allowed: false,
-      reason: 'No disponible: la reserva no es evaluable con la evidencia temporal actual.',
+      reason: 'No contamos con información suficiente para calcular una estimación.',
     };
   }
   if (risk.status === 'NOT_SCORED') return { allowed: true, reason: null };
@@ -56,6 +56,6 @@ export function predictionRequestAvailability(
     ? { allowed: true, reason: null }
     : {
         allowed: false,
-        reason: 'Todos los modelos disponibles ya tienen una estimación registrada.',
+        reason: 'Todos los modelos disponibles ya tienen una estimación.',
       };
 }

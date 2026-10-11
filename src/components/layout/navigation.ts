@@ -1,9 +1,5 @@
-import { CalendarDays } from 'lucide-react';
-
 /**
- * Sprint 01 se centra en reservas; el detalle se alcanza por navegación contextual.
- * Los módulos de sprints posteriores no se muestran como funcionalidades disponibles.
+ * Único módulo operativo disponible; el detalle se alcanza por navegación contextual.
+ * No se muestran módulos inexistentes.
  */
-export const navigationItems = [
-  { href: '/reservations', label: 'Reservas', icon: CalendarDays },
-] as const;
+export const navigationItems = [{ href: '/reservations', label: 'Reservas' }] as const;

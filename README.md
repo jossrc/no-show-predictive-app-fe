@@ -6,8 +6,9 @@ estimada (HU-02), factores SHAP (HU-05) e historial del cliente (HU-06), integra
 Fastify desde el servidor de Next.js.
 
 Las estimaciones son **exploratorias** (`EXPLORATORY_NOT_VALIDATED`): no hay niveles de riesgo
-aprobados ni uso operativo. Detalles en [docs/frontend-sprint-01.md](docs/frontend-sprint-01.md) y
-[la matriz de aceptación](docs/sprint-01-frontend-acceptance.md).
+aprobados ni uso operativo. Detalles en [docs/frontend-sprint-01.md](docs/frontend-sprint-01.md),
+[la matriz de aceptación](docs/sprint-01-frontend-acceptance.md) y
+[el rediseño UX/UI y los modos de presentación](docs/frontend-redesign.md).
 
 ## Comenzar
 
@@ -23,12 +24,24 @@ cp .env.example .env.local
 Editar `.env.local` (nunca se versiona):
 
 ```dotenv
+APP_ENV=development
+FRONTEND_DATA_MODE=live
 FASTIFY_API_BASE_URL=http://127.0.0.1:3000
 FASTIFY_INTERNAL_API_KEY=<clave interna ORIGINAL de Fastify, no el hash INTERNAL_API_KEY_SHA256>
-FRONTEND_DATA_MODE=live
 ```
 
 La clave solo se lee en el servidor de Next.js; nunca usar `NEXT_PUBLIC_`.
+
+### Modo de presentación (`APP_ENV`)
+
+- `APP_ENV=development`: interfaz de producto + botón «Diagnóstico» y paneles técnicos ocultos
+  por defecto (historia de usuario, endpoint, estado HTTP, `requestId`, códigos, snapshot…).
+- `APP_ENV=production` (o valor ausente/inválido): solo información de negocio.
+- `APP_ENV` controla solo la presentación: `NODE_ENV` sigue siendo el runtime de Next.js y
+  `FRONTEND_DATA_MODE` el origen de datos. Con `NODE_ENV=production` nunca hay diagnósticos y
+  LIVE sigue rechazado.
+- Para previsualizar la interfaz de usuarios finales en local: `APP_ENV=production` con
+  `FRONTEND_DATA_MODE=live` y `npm run dev` (sigue limitado a `127.0.0.1`).
 
 ## Levantar los servicios
 
@@ -54,9 +67,8 @@ desplegar públicamente.
 ### Verificación manual contra el backend real (pendiente)
 
 Con Fastify en marcha, abrir: `/reservations` (listado y filtros), el detalle de una reserva
-(riesgo esperado `NOT_SCORABLE`), el historial en ambas pestañas y «Ver explicación» (409
-`EXPLANATION_SNAPSHOT_UNAVAILABLE` esperado). **No** pulsar «Solicitar predicción» sobre reservas
-reales sin decidir conscientemente sus efectos de persistencia.
+(«Estimación no disponible» esperado) y el historial en ambas pestañas. **No** pulsar «Calcular
+estimación» sobre reservas reales sin decidir conscientemente sus efectos de persistencia.
 
 ## Comandos
 
@@ -68,7 +80,7 @@ reales sin decidir conscientemente sus efectos de persistencia.
 | `npm run format` / `npm run format:check` | Prettier                                               |
 | `npm run typecheck`                       | Tipos de rutas + TypeScript 7                          |
 | `npm test` / `npm run test:coverage`      | Vitest (unidad, integración HTTP con MSW, componentes) |
-| `npm run test:e2e`                        | Playwright con backend simulado (`mock`)               |
+| `npm run test:e2e`                        | Playwright (`mock`, `APP_ENV=production`)              |
 | `npm run check`                           | Lint, formato, tipos, pruebas y build                  |
 
 Playwright necesita el puerto 3001 libre (detener `npm run dev`) y Chromium

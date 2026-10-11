@@ -10,8 +10,8 @@ export function MainNavigation() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Navegación principal" className="flex items-center gap-1">
-      {navigationItems.map(({ href, label, icon: Icon }) => {
+    <nav aria-label="Navegación principal" className="flex h-full items-stretch gap-1">
+      {navigationItems.map(({ href, label }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
@@ -19,11 +19,13 @@ export function MainNavigation() {
             href={href}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex h-8 items-center gap-2 rounded-md px-2.5 text-sm transition-colors hover:bg-muted hover:text-foreground',
-              active ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground',
+              'relative inline-flex items-center px-1 text-sm font-medium transition-colors hover:text-foreground',
+              'after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:transition-colors',
+              active
+                ? 'text-foreground after:bg-brand'
+                : 'text-muted-foreground after:bg-transparent',
             )}
           >
-            <Icon aria-hidden="true" className="size-4" />
             {label}
           </Link>
         );

@@ -14,16 +14,23 @@ export const STATUS_FILTER_LABELS: Readonly<Record<ListableStatus, string>> = {
 
 export const SORT_FIELD_LABELS: Readonly<Record<SortField, string>> = {
   appointmentAt: 'Fecha de la cita',
-  probabilityNoShow: 'Probabilidad (exploratoria)',
+  probabilityNoShow: 'Estimación (experimental)',
 };
 
 export const STALE_CLASSIFICATION_TEXT =
-  'Clasificación desactualizada: la cita ya pasó respecto del último corte de clasificación.';
+  'La información de esta cita podría requerir actualización.';
+
+export const RESCHEDULED_TEXT = 'Reprogramación detectada';
 
 export function formatReservationLabel(reservationId: string): string {
   return `Reserva #${reservationId}`;
 }
 
-export function formatClinicLabel(clinicId: number): string {
-  return `Clínica #${clinicId}`;
+/** El backend solo informa identificadores: nunca se inventan nombres de sedes ni clientes. */
+export function formatClinicLabel(clinicId: number | string): string {
+  return `Sede #${clinicId}`;
+}
+
+export function formatClientLabel(clientId: string): string {
+  return `Cliente #${clientId}`;
 }

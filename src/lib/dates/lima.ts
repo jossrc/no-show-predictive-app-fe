@@ -21,6 +21,14 @@ const timeFormatter = new Intl.DateTimeFormat(LOCALE, {
   hour12: true,
 });
 
+const longDateFormatter = new Intl.DateTimeFormat(LOCALE, {
+  timeZone: LIMA_TIME_ZONE,
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+
 const weekdayFormatter = new Intl.DateTimeFormat(LOCALE, {
   timeZone: LIMA_TIME_ZONE,
   weekday: 'short',
@@ -51,6 +59,11 @@ export function formatLimaTime(value: string | Date): string {
 export function formatLimaDateTime(value: string | Date): string {
   const instant = toInstant(value);
   return `${dateFormatter.format(instant)} · ${timeFormatter.format(instant)}`;
+}
+
+/** `sábado, 5 de diciembre de 2026` en Lima. */
+export function formatLimaLongDate(value: string | Date): string {
+  return longDateFormatter.format(toInstant(value));
 }
 
 /** Día abreviado de la semana en Lima, p. ej. `sáb.`. */

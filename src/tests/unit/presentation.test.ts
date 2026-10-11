@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { toHistoryView } from '@/features/client-history/model/history-view';
-import { toHealthView } from '@/features/prediction-models/model/health-view';
+import {
+  describeHistoryWarnings,
+  RATE_SCOPE_TEXT,
+  toHistoryView,
+} from '@/features/client-history/model/history-view';
+import { healthDiagnostics } from '@/features/prediction-models/model/health-view';
 import {
   resolveModelIdentity,
   selectableModelKeys,
@@ -114,8 +118,8 @@ describe('Factores SHAP', () => {
     const [positive, , negative] = toFactorViews(
       factorsFixture(MOCK_IDS.availableBoth, RF.key).explanation.factors,
     );
-    expect(positive?.directionLabel).toBe('Asociado a una salida mayor del modelo');
-    expect(negative?.directionLabel).toBe('Asociado a una salida menor del modelo');
+    expect(positive?.directionLabel).toBe('Eleva la estimación');
+    expect(negative?.directionLabel).toBe('Reduce la estimación');
     expect(negative?.sensitive).toBe(true);
   });
 });
@@ -130,15 +134,17 @@ describe('Historial del cliente', () => {
     expect(formatRate(1 / 13)).toBe('7.7 %');
   });
 
-  it('traduce los avisos sin perder códigos desconocidos', () => {
-    const view = toHistoryView({
-      ...historyFixture(MOCK_IDS.availableBoth, 'current_known'),
-      warnings: ['CURRENT_KNOWN_DOES_NOT_FEED_ORIGINAL_SCORE', 'NUEVO_AVISO'],
-    });
-    expect(view.warnings.map((warning) => warning.text)).toEqual([
-      'Este historial actual no alimenta ni modifica el score original de la reserva.',
-      'NUEVO_AVISO',
+  it('traduce los avisos a lenguaje sencillo sin mostrar códigos desconocidos', () => {
+    expect(
+      describeHistoryWarnings(['CURRENT_KNOWN_DOES_NOT_FEED_ORIGINAL_SCORE', 'NUEVO_AVISO']),
+    ).toEqual([
+      'El historial actual no modifica una predicción realizada anteriormente.',
+      'Existen aclaraciones adicionales del sistema sobre estos datos.',
+      RATE_SCOPE_TEXT,
     ]);
+    const view = toHistoryView(historyFixture(MOCK_IDS.availableBoth, 'booking_creation'));
+    expect(view.considerations).toContain('Las cancelaciones no se cuentan como inasistencias.');
+    expect(view.considerations.join(' ')).not.toMatch(/[A-Z]{3,}_[A-Z_]+/);
   });
 });
 
@@ -146,26 +152,37 @@ describe('Errores y disponibilidad', () => {
   it('presenta los códigos del contrato en español', () => {
     expect(
       describeApiError(httpError(409, 'EXPLANATION_SNAPSHOT_UNAVAILABLE').error).description,
-    ).toBe('No se dispone de información suficiente para explicar esta estimación.');
+    ).toBe('No podemos mostrar los factores de esta cita con la información actual.');
+    expect(describeApiError(httpError(409, 'RISK_POLICY_UNAVAILABLE').error)).toMatchObject({
+      title: 'Clasificación de riesgo no disponible',
+      description: 'Los niveles de riesgo todavía no están habilitados.',
+    });
     expect(describeApiError(httpError(503, 'DESCONOCIDO').error)).toMatchObject({
-      title: 'Servicio no disponible',
+      title: 'No pudimos cargar la información',
       retryable: true,
     });
     expect(describeApiError(httpError(418, 'DESCONOCIDO').error).retryable).toBe(false);
   });
 
-  it('no afirma disponibilidad total cuando solo responde Health', () => {
-    const view = toHealthView(
-      ok({
-        service: 'ml',
-        status: 'ok',
-        message: '',
-        servingStatus: 'EXPLORATORY_NOT_VALIDATED',
-        operationalUseAllowed: false,
-      }),
-    );
-    expect(view.label).toBe('ML disponible');
-    expect(view.description).toContain('no garantiza');
-    expect(toHealthView(httpError(503, 'X')).tone).toBe('unknown');
+  it('los títulos y descripciones de error nunca exponen códigos técnicos', () => {
+    for (const code of ['NOT_SCORABLE', 'ML_TIMEOUT', 'UNAUTHORIZED', 'INVALID_RESPONSE', 'X']) {
+      const { title, description } = describeApiError(httpError(503, code).error);
+      expect(`${title} ${description}`).not.toMatch(/[A-Z]{2,}_[A-Z_]+|HU-|\d{3}/);
+    }
+  });
+
+  it('Health ML solo aparece en el diagnóstico y no afirma disponibilidad total', () => {
+    const health = ok({
+      service: 'ml' as const,
+      status: 'ok' as const,
+      message: '',
+      servingStatus: 'EXPLORATORY_NOT_VALIDATED' as const,
+      operationalUseAllowed: false as const,
+    });
+    const [section] = healthDiagnostics(health);
+    const text = JSON.stringify(section);
+    expect(text).toContain('Disponible (uso exploratorio)');
+    expect(text).toContain('no garantiza');
+    expect(JSON.stringify(healthDiagnostics(httpError(503, 'X')))).toContain('Sin verificar');
   });
 });

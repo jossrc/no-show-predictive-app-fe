@@ -68,6 +68,21 @@ export function defaultFilters(today: string): ReservationListFilters {
   };
 }
 
+/** Filtros secundarios («Más filtros») con un valor distinto del predeterminado. */
+export function countAdvancedFilters(values: {
+  sort: string;
+  direction: string;
+  modelKey: string;
+  limit: number | string;
+}): number {
+  return [
+    values.sort !== 'appointmentAt',
+    values.direction !== 'asc',
+    values.modelKey !== DEFAULT_MODEL_KEY,
+    Number(values.limit) !== DEFAULT_LIMIT,
+  ].filter(Boolean).length;
+}
+
 export function validatePeriod(from: string, to: string): string | null {
   if (!isCalendarDate(from) || !isCalendarDate(to))
     return 'Las fechas deben tener el formato AAAA-MM-DD.';
@@ -104,7 +119,7 @@ function parsePeriod(raw: RawSearchParams, today: string, notices: string[]) {
   const toValid = to !== undefined && isCalendarDate(to);
 
   if ((from !== undefined && !fromValid) || (to !== undefined && !toValid)) {
-    notices.push('Se ignoró una fecha con formato no válido y se aplicó el rango predeterminado.');
+    notices.push('Una fecha no era válida; se aplicó el período predeterminado.');
     return { from: defaults.from, to: defaults.to };
   }
   if (fromValid && toValid) return { from, to };
@@ -117,14 +132,16 @@ function parseLimit(value: string | undefined, notices: string[]): number {
   if (value === undefined) return DEFAULT_LIMIT;
   const limit = /^\d{1,3}$/.test(value) ? Number(value) : NaN;
   if (limit >= 1 && limit <= 100) return limit;
-  notices.push(`Se ignoró un tamaño de página no válido; se muestran ${DEFAULT_LIMIT} reservas.`);
+  notices.push(
+    `El tamaño de página no era válido; se muestran ${DEFAULT_LIMIT} reservas por página.`,
+  );
   return DEFAULT_LIMIT;
 }
 
 function parseClinicId(value: string | undefined, notices: string[]): string | null {
   if (value === undefined || value === '') return null;
   if (isValidClinicId(value)) return value;
-  notices.push('Se ignoró un identificador de clínica no válido.');
+  notices.push('El número de sede no era válido; se quitó ese filtro.');
   return null;
 }
 
@@ -144,7 +161,7 @@ function parseSort(raw: RawSearchParams, notices: string[]) {
   const rawSort = first(raw, 'sort');
   if (rawSort === 'riskLevel') {
     notices.push(
-      'El orden por nivel de riesgo no está disponible mientras la clasificación esté pendiente de validación; se ordena por fecha de cita.',
+      'El orden por nivel de riesgo todavía no está disponible; se ordenó por fecha de la cita.',
     );
   }
   const sort = pickEnum(
@@ -153,7 +170,8 @@ function parseSort(raw: RawSearchParams, notices: string[]) {
     'appointmentAt',
   );
   const direction = pickEnum(first(raw, 'direction'), SORT_DIRECTIONS, 'asc');
-  if (sort.invalid || direction.invalid) notices.push('Se ignoró un criterio de orden no válido.');
+  if (sort.invalid || direction.invalid)
+    notices.push('El criterio de orden no era válido; se ordenó por fecha de la cita.');
   return { sort: sort.value, direction: direction.value };
 }
 
@@ -165,13 +183,15 @@ export function parseReservationListParams(raw: RawSearchParams, today: string):
   const notices: string[] = [];
   if (first(raw, 'riskLevel') !== undefined) {
     notices.push(
-      'Se ignoró el filtro por nivel de riesgo: la clasificación está pendiente de validación científica.',
+      'La clasificación por nivel de riesgo todavía no está disponible; se ignoró ese filtro.',
     );
   }
   const status = pickEnum(first(raw, 'status'), LISTABLE_STATUSES, 'SCHEDULED');
   const modelKey = pickEnum(first(raw, 'modelKey'), MODEL_KEYS, DEFAULT_MODEL_KEY);
-  if (status.invalid) notices.push('Se ignoró un estado de reserva no válido.');
-  if (modelKey.invalid) notices.push('Se ignoró un modelo no reconocido.');
+  if (status.invalid)
+    notices.push('El estado indicado no era válido; se muestran las reservas programadas.');
+  if (modelKey.invalid)
+    notices.push('El modelo indicado no se reconoció; se usa el modelo predeterminado.');
 
   const period = parsePeriod(raw, today, notices);
   const query: ReservationListQuery = {

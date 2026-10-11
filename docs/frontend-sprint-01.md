@@ -3,6 +3,10 @@
 Implementación del frontend funcional de HU-01, HU-02, HU-03, HU-05 y HU-06 sobre la fundación
 existente (Next.js 16.4, React 19.3, TypeScript 7, Tailwind 4, shadcn/ui). Fecha: 11-10-2026.
 
+> La presentación visual (secciones 4, 5, 11 y 14) fue reemplazada por el rediseño UX/UI y el modo
+> de presentación `APP_ENV`: ver [frontend-redesign.md](frontend-redesign.md). Contratos,
+> integración y reglas científicas de este documento siguen vigentes.
+
 ## 1. Alcance implementado
 
 | Incluido                                                   | Excluido (fuera de Sprint 01)                                  |
@@ -82,7 +86,7 @@ Solo se consumen las ocho operaciones del contrato, siempre desde el servidor de
 | `GET /api/v1/reservations/:id/risk/factors`   | `loadRiskFactorsAction` (Server Action + TanStack Query, bajo demanda)    |
 | `GET /api/v1/reservations/:id/client-history` | `getClientHistory` (inicial) / `loadClientHistoryAction` (cambio de modo) |
 | `GET /api/v1/ml/models`                       | `getModelCatalog` (detalle)                                               |
-| `GET /api/v1/health/ml`                       | `MlServiceStatus` (layout, sin credencial, sin polling)                   |
+| `GET /api/v1/health/ml`                       | `ServiceDiagnostics` (solo con `APP_ENV=development`, sin credencial)     |
 
 `lib/api/fastify-client.ts`: URL base del entorno, `x-api-key` solo en rutas de negocio,
 `Accept`/`Content-Type` JSON, `cache: 'no-store'`, `redirect: 'error'`, `AbortSignal.timeout`

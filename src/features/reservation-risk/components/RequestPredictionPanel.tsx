@@ -58,61 +58,38 @@ function usePredictionRequest(reservationId: string, allowed: boolean) {
   return { outcome, pending, submit };
 }
 
-function UnavailableRequest({ id, reason }: { id: string; reason: string | null }) {
-  return (
-    <div className="flex flex-col gap-2 rounded-lg border border-dashed px-3.5 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <p id={id} className="text-xs text-muted-foreground">
-        {reason}
-      </p>
-      <Button size="sm" variant="outline" disabled aria-describedby={id}>
-        Solicitar predicción
-      </Button>
-    </div>
-  );
-}
-
 /**
- * Acción explícita «Solicitar predicción». Nunca se ejecuta al cargar, navegar o filtrar.
- * Bloquea el doble envío y no reintenta automáticamente tras un timeout.
+ * Acción explícita «Calcular estimación». Nunca se ejecuta al cargar, navegar o filtrar; bloquea
+ * el doble envío y no reintenta automáticamente. Si la acción no corresponde, no se muestra.
  */
 export function RequestPredictionPanel({ reservationId, modelOptions, availability }: Props) {
   const ids = useId();
   const [choice, setChoice] = useState<Choice>(() => initialChoice(modelOptions));
   const { outcome, pending, submit } = usePredictionRequest(reservationId, availability.allowed);
-  const disabled = !availability.allowed || pending;
 
-  if (!availability.allowed && !outcome && !pending) {
-    return <UnavailableRequest id={`${ids}-reason`} reason={availability.reason} />;
-  }
+  if (!availability.allowed && !outcome && !pending) return null;
 
   return (
-    <div className="space-y-3 rounded-lg border p-3.5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <PredictionModeSelect
-          id={`${ids}-mode`}
-          value={choice}
-          disabled={disabled}
-          options={modelOptions}
-          onChange={setChoice}
-        />
-        <Button
-          onClick={() => submit(choice)}
-          disabled={disabled}
-          aria-busy={pending}
-          aria-describedby={availability.reason ? `${ids}-reason` : undefined}
-        >
-          <SubmitLabel pending={pending} />
-        </Button>
-      </div>
-      {availability.reason && (
-        <p id={`${ids}-reason`} className="text-xs text-muted-foreground">
-          {availability.reason}
+    <div className="space-y-3 rounded-lg border bg-surface-subtle p-4">
+      {availability.allowed && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <PredictionModeSelect
+            id={`${ids}-mode`}
+            value={choice}
+            disabled={pending}
+            options={modelOptions}
+            onChange={setChoice}
+          />
+          <Button onClick={() => submit(choice)} disabled={pending} aria-busy={pending}>
+            <SubmitLabel pending={pending} />
+          </Button>
+        </div>
+      )}
+      {availability.allowed && (
+        <p className="text-xs text-muted-foreground">
+          El resultado quedará registrado en esta cita.
         </p>
       )}
-      <p className="text-[11px] text-muted-foreground">
-        Acción explícita: puede registrar un resultado exploratorio persistido en el backend. No se
-        reintenta automáticamente.
-      </p>
       <div aria-live="polite">
         {outcome && <PredictionOutcomeMessage outcome={outcome} onRetry={() => submit(choice)} />}
       </div>
@@ -129,8 +106,8 @@ function PredictionModeSelect(props: {
 }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <Label htmlFor={props.id} className="text-xs font-medium text-muted-foreground">
-        Modelos a evaluar
+      <Label htmlFor={props.id} className="text-[13px] font-medium text-foreground/80">
+        Modelos
       </Label>
       <NativeSelect
         id={props.id}
@@ -140,9 +117,7 @@ function PredictionModeSelect(props: {
         onChange={(event) => props.onChange(event.target.value as Choice)}
       >
         {props.options.length > 1 && (
-          <NativeSelectOption value="compare">
-            Comparar ambos modelos (independientes)
-          </NativeSelectOption>
+          <NativeSelectOption value="compare">Ambos modelos (independientes)</NativeSelectOption>
         )}
         {props.options.map((option) => (
           <NativeSelectOption key={option.modelKey} value={option.modelKey}>
@@ -155,11 +130,11 @@ function PredictionModeSelect(props: {
 }
 
 function SubmitLabel({ pending }: { pending: boolean }) {
-  if (!pending) return <>Solicitar predicción</>;
+  if (!pending) return <>Calcular estimación</>;
   return (
     <>
       <LoaderCircle aria-hidden="true" className="animate-spin" />
-      Solicitando predicción…
+      Calculando…
     </>
   );
 }

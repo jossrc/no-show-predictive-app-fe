@@ -13,7 +13,7 @@ interface FilterFieldProps {
 export function FilterField({ id, label, error, children }: FilterFieldProps) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <Label htmlFor={id} className="text-xs font-medium text-muted-foreground">
+      <Label htmlFor={id} className="text-[13px] font-medium text-foreground/80">
         {label}
       </Label>
       {children}

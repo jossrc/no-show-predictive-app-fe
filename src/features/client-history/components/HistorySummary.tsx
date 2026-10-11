@@ -1,70 +1,76 @@
-import { DescriptionList } from '@/components/shared/DescriptionList';
-import { RequestIdNote } from '@/components/shared/RequestIdNote';
-import type { ClientHistory } from '@/features/client-history/api/contract';
-import {
-  HISTORY_MODE_DESCRIPTIONS,
-  NO_HISTORY_RATE_TEXT,
-  toHistoryView,
-} from '@/features/client-history/model/history-view';
+import { ChevronRight } from 'lucide-react';
+import type { ReactNode } from 'react';
 
-function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
+import { DescriptionList } from '@/components/shared/DescriptionList';
+import type { ClientHistory } from '@/features/client-history/api/contract';
+import { NO_HISTORY_RATE_TEXT, toHistoryView } from '@/features/client-history/model/history-view';
+
+function Stat({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="rounded-lg border bg-surface-subtle px-3 py-2.5">
-      <dt className="text-[11px] text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 text-lg font-semibold tracking-tight tabular-nums">{value}</dd>
-      {hint && <dd className="text-[11px] text-muted-foreground">{hint}</dd>}
+    <div className="flex min-w-0 flex-col px-3 py-3">
+      <dt className="text-xs leading-snug text-muted-foreground">{label}</dt>
+      <dd className="mt-auto pt-1">
+        {value === null ? (
+          <span className="text-[13px] font-medium text-muted-foreground">
+            {NO_HISTORY_RATE_TEXT}
+          </span>
+        ) : (
+          <span className="text-2xl font-semibold tracking-tight tabular-nums">{value}</span>
+        )}
+      </dd>
     </div>
   );
 }
 
-/** Conteos y tasa histórica (proxy NO_SHOW_CANDIDATE) con su corte temporal explícito. */
+/** Aclaraciones agrupadas en un desplegable accesible (no ocupan la vista principal). */
+function HowItIsCalculated({ considerations }: { considerations: string[] }) {
+  return (
+    <details className="group rounded-lg border px-3.5 py-2.5 text-[13px]">
+      <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-sm font-medium text-foreground/80 hover:text-foreground [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          aria-hidden="true"
+          className="size-4 transition-transform group-open:rotate-90"
+        />
+        Cómo se calcula esta información
+      </summary>
+      <ul className="mt-2 list-disc space-y-1.5 pl-9 text-muted-foreground">
+        {considerations.map((text) => (
+          <li key={text}>{text}</li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/** Asistencias, posibles inasistencias y tasa histórica, con el total como dato secundario. */
 export function HistorySummary({
   history,
-  requestId,
+  diagnostics,
 }: {
   history: ClientHistory;
-  requestId: string | null;
+  /** Acceso al diagnóstico de desarrollo (ausente en producción). */
+  diagnostics?: ReactNode;
 }) {
   const view = toHistoryView(history);
   return (
     <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
-        {HISTORY_MODE_DESCRIPTIONS[history.historicalAsOf]}
-      </p>
-      <dl className="grid grid-cols-2 gap-2">
-        <Stat label="Asistencias previas" value={String(view.attended)} />
-        <Stat label="Inasistencias candidatas" value={String(view.noShow)} />
-        <Stat label="Total resuelto" value={String(view.resolvedTotal)} />
-        <Stat
-          label="Tasa histórica"
-          value={view.rateText ?? '—'}
-          hint={view.rateText === null ? NO_HISTORY_RATE_TEXT : undefined}
-        />
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[13px] text-muted-foreground">{view.modeText}</p>
+        <div className="-mt-1.5 -mr-1.5 shrink-0 empty:hidden">{diagnostics}</div>
+      </div>
+      <dl className="grid grid-cols-3 divide-x rounded-lg border bg-surface-subtle">
+        <Stat label="Asistencias" value={String(view.attended)} />
+        <Stat label="Posibles inasistencias" value={String(view.noShow)} />
+        <Stat label="Tasa histórica" value={view.rateText} />
       </dl>
-      <p className="text-[11px] text-muted-foreground">
-        La tasa histórica describe citas previas resueltas; no es la probabilidad predictiva de esta
-        cita.
-      </p>
       <DescriptionList
-        className="text-xs"
         items={[
+          { term: 'Total de citas resueltas', value: String(view.resolvedTotal) },
           { term: 'Última asistencia', value: view.lastAttendedText ?? 'Sin registros' },
-          { term: 'Última inasistencia candidata', value: view.lastNoShowText ?? 'Sin registros' },
-          { term: 'Fecha de corte', value: view.cutoffText },
-          {
-            term: 'Criterio de corte',
-            value: <code className="font-mono font-normal">{history.cutoffSemantics}</code>,
-          },
+          { term: 'Última posible inasistencia', value: view.lastNoShowText ?? 'Sin registros' },
         ]}
       />
-      {view.warnings.length > 0 && (
-        <ul className="space-y-1.5 border-l-2 pl-3 text-[11px] text-muted-foreground">
-          {view.warnings.map((warning) => (
-            <li key={warning.code}>{warning.text}</li>
-          ))}
-        </ul>
-      )}
-      <RequestIdNote requestId={requestId} />
+      <HowItIsCalculated considerations={view.considerations} />
     </div>
   );
 }

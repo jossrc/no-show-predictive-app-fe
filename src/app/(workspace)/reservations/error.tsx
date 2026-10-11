@@ -10,10 +10,6 @@ export default function ReservationsError({
   retry: () => void;
 }) {
   return (
-    <ErrorState
-      title="No se pudo mostrar el listado de reservas"
-      digest={error.digest}
-      onRetry={retry}
-    />
+    <ErrorState title="No pudimos mostrar las reservas" digest={error.digest} onRetry={retry} />
   );
 }

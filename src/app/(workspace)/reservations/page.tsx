@@ -4,7 +4,6 @@ import { Suspense } from 'react';
 import { Notice } from '@/components/shared/Notice';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { RefreshButton } from '@/components/shared/RefreshButton';
-import { describePeriod } from '@/features/reservations/components/caption';
 import { ReservationFilters } from '@/features/reservations/components/ReservationFilters';
 import { ReservationsResults } from '@/features/reservations/components/ReservationsResults';
 import { ReservationsResultsSkeleton } from '@/features/reservations/components/ReservationsSkeleton';
@@ -15,7 +14,7 @@ import {
 import { buildListHref } from '@/features/reservations/model/list-url';
 import { todayInLima } from '@/lib/dates/calendar';
 
-export const metadata: Metadata = { title: 'Reservas programadas' };
+export const metadata: Metadata = { title: 'Gestión de reservas' };
 
 export default async function ReservationsPage({
   searchParams,
@@ -32,13 +31,13 @@ export default async function ReservationsPage({
   return (
     <>
       <PageHeader
-        title="Reservas programadas"
-        description={`Citas del ${describePeriod(query)} en horario de Lima, con su estado y las estimaciones exploratorias de inasistencia.`}
+        title="Gestión de reservas"
+        description="Consulta y seguimiento de citas programadas."
         actions={<RefreshButton />}
       />
       <ReservationFilters key={filtersKey} initial={query} />
       {notices.length > 0 && (
-        <Notice tone="warning" title="Se ajustaron parámetros de la URL" className="mb-4">
+        <Notice tone="warning" title="Ajustamos algunos filtros" className="mb-4">
           <ul className="list-disc pl-4">
             {notices.map((notice) => (
               <li key={notice}>{notice}</li>
@@ -47,7 +46,7 @@ export default async function ReservationsPage({
         </Notice>
       )}
       {periodError ? (
-        <Notice tone="warning" title="Período inválido">
+        <Notice tone="warning" title="Período no válido">
           {periodError} Corrige las fechas en los filtros para consultar reservas.
         </Notice>
       ) : (

@@ -9,24 +9,26 @@ import type {
  * RF: espacio de probabilidad (enlace identidad). XGBoost: log-odds (enlace sigmoide).
  * Las contribuciones nunca se convierten a porcentaje ni se comparan entre modelos.
  */
-export const OUTPUT_SPACE_LABELS: Readonly<Record<OutputSpace, string>> = {
-  probability: 'Probabilidad (enlace identidad)',
-  log_odds: 'Log-odds (enlace sigmoide)',
+export const OUTPUT_SPACE_UNITS: Readonly<Record<OutputSpace, string>> = {
+  probability: 'probabilidad',
+  log_odds: 'log-odds',
 };
 
 export const OUTPUT_SPACE_UNIT_HINTS: Readonly<Record<OutputSpace, string>> = {
-  probability: 'Contribuciones en escala de probabilidad (0–1).',
-  log_odds: 'Contribuciones en log-odds; no equivalen a puntos porcentuales.',
+  probability: 'Contribuciones en escala de probabilidad (de 0 a 1).',
+  log_odds:
+    'Contribuciones en log-odds, la escala interna de XGBoost; no equivalen a puntos porcentuales.',
 };
 
+/** Describe el efecto sobre el cálculo del modelo, no una causa de la inasistencia. */
 export const DIRECTION_LABELS: Readonly<Record<FactorDirection, string>> = {
-  increases_model_output: 'Asociado a una salida mayor del modelo',
-  decreases_model_output: 'Asociado a una salida menor del modelo',
-  neutral: 'Sin asociación apreciable',
+  increases_model_output: 'Eleva la estimación',
+  decreases_model_output: 'Reduce la estimación',
+  neutral: 'Sin efecto apreciable',
 };
 
 export const NON_CAUSAL_NOTE =
-  'Los factores representan asociaciones locales con la salida del modelo, no causas demostradas de inasistencia.';
+  'Estos factores ayudan a interpretar el cálculo, pero no indican necesariamente las causas de una inasistencia.';
 
 const contributionFormatter = new Intl.NumberFormat('es-PE', {
   minimumFractionDigits: 3,

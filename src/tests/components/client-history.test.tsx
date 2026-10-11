@@ -12,82 +12,75 @@ vi.mock('@/features/client-history/api/history.actions', () => actions);
 const region = () => within(screen.getByRole('region', { name: 'Historial del cliente' }));
 const stat = (label: string) => screen.getByText(label).parentElement!;
 
+function renderHistory(id: string, initial = ok(historyFixture(id, 'booking_creation'))) {
+  return renderWithQuery(<ClientHistorySection reservationId={id} initial={initial} />);
+}
+
 beforeEach(() => vi.clearAllMocks());
 
 describe('Historial del cliente (HU-06)', () => {
-  it('modo inicial booking_creation con datos del servidor, sin llamadas adicionales', () => {
-    renderWithQuery(
-      <ClientHistorySection
-        reservationId={MOCK_IDS.availableBoth}
-        initial={ok(historyFixture(MOCK_IDS.availableBoth, 'booking_creation'))}
-      />,
-    );
-    expect(region().getByRole('tab', { name: 'Al crear la reserva' })).toHaveAttribute(
+  it('«Al reservar» con datos del servidor, sin llamadas adicionales', () => {
+    renderHistory(MOCK_IDS.availableBoth);
+    expect(region().getByRole('tab', { name: 'Al reservar' })).toHaveAttribute(
       'aria-selected',
       'true',
     );
-    expect(stat('Asistencias previas')).toHaveTextContent('10');
-    expect(stat('Inasistencias candidatas')).toHaveTextContent('0');
+    expect(region().getByText(/Información conocida al crear la reserva/)).toBeVisible();
+    expect(stat('Asistencias')).toHaveTextContent('10');
+    expect(stat('Posibles inasistencias')).toHaveTextContent('0');
     expect(stat('Tasa histórica')).toHaveTextContent('0 %');
-    expect(region().getByText(/no es la probabilidad predictiva de esta cita/)).toBeVisible();
-    expect(region().getByText('Las cancelaciones no se cuentan como inasistencias.')).toBeVisible();
+    expect(region().getByText('Total de citas resueltas')).toBeVisible();
     expect(actions.loadClientHistoryAction).not.toHaveBeenCalled();
   });
 
-  it('cambia a current_known bajo demanda y aclara que no alimenta el score original', async () => {
+  it('las aclaraciones se agrupan en «Cómo se calcula esta información»', async () => {
+    const user = userEvent.setup();
+    renderHistory(MOCK_IDS.availableBoth);
+    const cancellations = region().getByText('Las cancelaciones no se cuentan como inasistencias.');
+    expect(cancellations).not.toBeVisible();
+    await user.click(region().getByText('Cómo se calcula esta información'));
+    expect(cancellations).toBeVisible();
+    expect(region().getByText(/no equivalen necesariamente a ausencias confirmadas/)).toBeVisible();
+    expect(region().getByText(/no es la estimación de esta cita/)).toBeVisible();
+    expect(region().queryByText(/NO_SHOW_CANDIDATE|known_at|cutoff/)).not.toBeInTheDocument();
+  });
+
+  it('cambia a «Información actual» bajo demanda y aclara que no modifica la predicción', async () => {
     const user = userEvent.setup();
     actions.loadClientHistoryAction.mockResolvedValue(
       ok(historyFixture(MOCK_IDS.availableBoth, 'current_known')),
     );
-    renderWithQuery(
-      <ClientHistorySection
-        reservationId={MOCK_IDS.availableBoth}
-        initial={ok(historyFixture(MOCK_IDS.availableBoth, 'booking_creation'))}
-      />,
-    );
-    await user.click(region().getByRole('tab', { name: 'Conocido actualmente' }));
+    renderHistory(MOCK_IDS.availableBoth);
+    await user.click(region().getByRole('tab', { name: 'Información actual' }));
     expect(await screen.findByText('12')).toBeVisible();
     expect(actions.loadClientHistoryAction).toHaveBeenCalledWith(
       MOCK_IDS.availableBoth,
       'current_known',
     );
-    expect(stat('Inasistencias candidatas')).toHaveTextContent('1');
+    expect(stat('Posibles inasistencias')).toHaveTextContent('1');
     expect(stat('Tasa histórica')).toHaveTextContent('7.7 %');
+    expect(region().getByText(/Información conocida hasta el/)).toBeVisible();
+    await user.click(region().getByText('Cómo se calcula esta información'));
     expect(
-      region().getByText(/no corresponde al historial usado por la predicción original/),
-    ).toBeVisible();
-    expect(
-      region().getByText(
-        'Este historial actual no alimenta ni modifica el score original de la reserva.',
-      ),
+      region().getByText('El historial actual no modifica una predicción realizada anteriormente.'),
     ).toBeVisible();
   });
 
-  it('historial vacío: tasa null como «Sin historial suficiente» y fechas sin registros', () => {
-    renderWithQuery(
-      <ClientHistorySection
-        reservationId={MOCK_IDS.notScorable}
-        initial={ok(historyFixture(MOCK_IDS.notScorable, 'booking_creation'))}
-      />,
-    );
-    expect(stat('Tasa histórica')).toHaveTextContent('Sin historial suficiente');
+  it('historial vacío: tasa null como «Sin datos suficientes» (nunca 0 %)', () => {
+    renderHistory(MOCK_IDS.notScorable);
+    expect(stat('Tasa histórica')).toHaveTextContent('Sin datos suficientes');
     expect(stat('Tasa histórica')).not.toHaveTextContent('0 %');
     expect(region().getAllByText('Sin registros')).toHaveLength(2);
-    expect(region().getByText('known_at < cutoffAt')).toBeVisible();
   });
 
   it.each([
-    [404, 'RESERVATION_NOT_FOUND', 'Reserva no encontrada', false],
-    [409, 'HISTORY_CUTOFF_UNAVAILABLE', 'Historial temporal no disponible', false],
-    [503, 'SOURCE_DATA_UNAVAILABLE', 'Fuente de reservas no disponible', true],
+    [404, 'RESERVATION_NOT_FOUND', 'No encontramos esta reserva', false],
+    [409, 'HISTORY_CUTOFF_UNAVAILABLE', 'Historial no disponible', false],
+    [503, 'SOURCE_DATA_UNAVAILABLE', 'No pudimos cargar la información', true],
   ])('error %i %s', (status, code, title, retryable) => {
-    renderWithQuery(
-      <ClientHistorySection
-        reservationId={MOCK_IDS.availableBoth}
-        initial={httpError(status, code)}
-      />,
-    );
+    renderHistory(MOCK_IDS.availableBoth, httpError(status, code));
     expect(region().getByRole('alert')).toHaveTextContent(title);
+    expect(region().getByRole('alert')).not.toHaveTextContent(code);
     expect(region().queryAllByRole('button', { name: 'Reintentar' }).length > 0).toBe(retryable);
   });
 
@@ -97,15 +90,29 @@ describe('Historial del cliente (HU-06)', () => {
     actions.loadClientHistoryAction.mockResolvedValueOnce(
       ok(historyFixture(MOCK_IDS.availableBoth, 'current_known')),
     );
+    renderHistory(MOCK_IDS.availableBoth);
+    await user.click(region().getByRole('tab', { name: 'Información actual' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('No pudimos cargar la información');
+    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
+    expect(await screen.findByText('12')).toBeVisible();
+  });
+
+  it('desarrollo: el corte temporal técnico se consulta en el diagnóstico', async () => {
+    const user = userEvent.setup();
     renderWithQuery(
       <ClientHistorySection
         reservationId={MOCK_IDS.availableBoth}
         initial={ok(historyFixture(MOCK_IDS.availableBoth, 'booking_creation'))}
       />,
+      { diagnosticsEnabled: true },
     );
-    await user.click(region().getByRole('tab', { name: 'Conocido actualmente' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Sin conexión con el backend');
-    await user.click(screen.getByRole('button', { name: 'Reintentar' }));
-    expect(await screen.findByText('12')).toBeVisible();
+    await user.click(
+      screen.getByRole('button', {
+        name: 'Diagnóstico técnico: Historial del cliente · Al reservar',
+      }),
+    );
+    const sheet = within(screen.getByRole('dialog'));
+    expect(sheet.getByText('HU-06')).toBeVisible();
+    expect(sheet.getByText('known_at < cutoffAt')).toBeVisible();
   });
 });

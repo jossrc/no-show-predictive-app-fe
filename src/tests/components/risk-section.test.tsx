@@ -1,5 +1,4 @@
 import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RiskSection } from '@/features/reservation-risk/components/RiskSection';
@@ -13,19 +12,17 @@ vi.mock('@/features/reservation-risk/api/risk.actions', () => actions);
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 const catalog = ok(catalogFixture);
-const section = () => screen.getByRole('region', { name: 'Estimación predictiva' });
+const section = () => screen.getByRole('region', { name: 'Estimación de inasistencia' });
+
+function renderRisk(id: string, risk = ok(riskFixture(id)), models = catalog) {
+  return render(<RiskSection reservationId={id} risk={risk} catalog={models} />);
+}
 
 beforeEach(() => vi.clearAllMocks());
 
-describe('Estimación predictiva (HU-02)', () => {
-  it('AVAILABLE_EXPLORATORY con dos modelos: bloques comparables sin ganador', () => {
-    render(
-      <RiskSection
-        reservationId={MOCK_IDS.availableBoth}
-        risk={ok(riskFixture(MOCK_IDS.availableBoth))}
-        catalog={catalog}
-      />,
-    );
+describe('Estimación de inasistencia (HU-02)', () => {
+  it('AVAILABLE_EXPLORATORY con RF y XGBoost: independientes, sin promedio ni ganador', () => {
+    renderRisk(MOCK_IDS.availableBoth);
     const region = within(section());
     expect(region.getByRole('heading', { name: 'Random Forest' })).toBeVisible();
     expect(region.getByRole('heading', { name: 'XGBoost' })).toBeVisible();
@@ -33,95 +30,82 @@ describe('Estimación predictiva (HU-02)', () => {
     expect(region.getByText('27.4 %')).toBeVisible();
     expect(region.getByText(/3.6 p. p./)).toBeVisible();
     expect(region.getByText(/no indica confianza ni qué modelo es más preciso/)).toBeVisible();
-    expect(region.getByText(/Clasificación de riesgo pendiente de validación/)).toBeVisible();
+    expect(
+      region.getByText(/Estimaciones experimentales. No validadas para decisiones operativas./),
+    ).toBeVisible();
+    expect(region.getByText(/niveles de riesgo todavía no está disponible/)).toBeVisible();
     expect(region.queryByText(/riesgo (bajo|medio|alto)/i)).not.toBeInTheDocument();
-    expect(region.queryByText(/modelo ganador:|promedio de modelos/i)).not.toBeInTheDocument();
+    expect(region.queryByText(/ganador|promedio/i)).not.toBeInTheDocument();
+    // Todos los modelos tienen estimación: la acción no se muestra.
+    expect(region.queryByRole('button', { name: 'Calcular estimación' })).not.toBeInTheDocument();
   });
 
-  it('AVAILABLE_EXPLORATORY con un modelo: probabilidad real de 0 % y modelo faltante explícito', () => {
-    render(
-      <RiskSection
-        reservationId={MOCK_IDS.rfOnlyZero}
-        risk={ok(riskFixture(MOCK_IDS.rfOnlyZero))}
-        catalog={catalog}
-      />,
-    );
+  it('no crea semáforos: la cifra no cambia de color según umbrales', () => {
+    renderRisk(MOCK_IDS.availableBoth);
+    for (const value of ['31 %', '27.4 %']) {
+      expect(within(section()).getByText(value).className).not.toMatch(
+        /red|green|yellow|amber|destructive|warning|success/,
+      );
+    }
+  });
+
+  it('un solo modelo: probabilidad real de 0 % y el otro modelo «Sin estimación»', () => {
+    renderRisk(MOCK_IDS.rfOnlyZero);
     const region = within(section());
     expect(region.getByText('0 %')).toBeVisible();
-    expect(region.getByText('Sin estimación registrada para este modelo.')).toBeVisible();
-    expect(region.getByRole('button', { name: 'Solicitar predicción' })).toBeEnabled();
+    expect(region.getByText('Sin estimación')).toBeVisible();
+    expect(region.getByRole('button', { name: 'Calcular estimación' })).toBeEnabled();
   });
 
-  it('probabilidad de 100 % para un score real de 1', () => {
-    render(
-      <RiskSection
-        reservationId={MOCK_IDS.xgbOnly}
-        risk={ok(riskFixture(MOCK_IDS.xgbOnly))}
-        catalog={catalog}
-      />,
-    );
+  it('XGBoost únicamente: probabilidad de 100 % para un score real de 1', () => {
+    renderRisk(MOCK_IDS.xgbOnly);
     expect(within(section()).getByText('100 %')).toBeVisible();
   });
 
-  it('NOT_SCORED: informa la ausencia y permite solicitar explícitamente sin llamar a la acción', () => {
-    render(
-      <RiskSection
-        reservationId={MOCK_IDS.notScored}
-        risk={ok(riskFixture(MOCK_IDS.notScored))}
-        catalog={catalog}
-      />,
-    );
+  it('NOT_SCORED: «Aún no hay una estimación» con acción explícita, sin POST automático', () => {
+    renderRisk(MOCK_IDS.notScored);
     const region = within(section());
-    expect(
-      region.getByText('Esta reserva todavía no tiene una predicción registrada.'),
-    ).toBeVisible();
-    expect(region.getByRole('button', { name: 'Solicitar predicción' })).toBeEnabled();
+    expect(region.getByText('Aún no hay una estimación')).toBeVisible();
+    expect(region.getByRole('button', { name: 'Calcular estimación' })).toBeEnabled();
     expect(region.queryByText(/%/)).not.toBeInTheDocument();
     expect(actions.requestPredictionAction).not.toHaveBeenCalled();
   });
 
-  it('NOT_SCORABLE: sin porcentaje, con motivos desplegables y acción deshabilitada', async () => {
-    const user = userEvent.setup();
-    render(
-      <RiskSection
-        reservationId={MOCK_IDS.notScorable}
-        risk={ok(riskFixture(MOCK_IDS.notScorable))}
-        catalog={catalog}
-      />,
-    );
+  it('NOT_SCORABLE: mensaje comprensible y compacto, sin códigos, porcentajes ni acciones', () => {
+    renderRisk(MOCK_IDS.notScorable);
     const region = within(section());
+    expect(region.getByText('Estimación no disponible')).toBeVisible();
     expect(
-      region.getByText('No es posible generar una predicción con la información disponible.'),
+      region.getByText(
+        'No contamos con información suficiente para calcular una estimación para esta cita.',
+      ),
     ).toBeVisible();
     expect(region.queryByText(/\d+ %/)).not.toBeInTheDocument();
-    await user.click(region.getByText('Ver motivos (2)'));
-    expect(region.getByText('SCHEDULED_SERVICES_NOT_POINT_IN_TIME')).toBeVisible();
-    expect(region.getByRole('button', { name: 'Solicitar predicción' })).toBeDisabled();
+    expect(region.queryByText(/SCHEDULED_SERVICES|NOT_SCORABLE|snapshot/i)).not.toBeInTheDocument();
+    expect(region.queryByRole('button')).not.toBeInTheDocument();
+    expect(region.queryByText(/experimental/i)).not.toBeInTheDocument();
     expect(region.queryByRole('alert')).not.toBeInTheDocument();
+    expect(actions.requestPredictionAction).not.toHaveBeenCalled();
   });
 
   it('un fallo del riesgo se muestra localizado y un fallo del catálogo no oculta los resultados', () => {
-    const { unmount } = render(
-      <RiskSection
-        reservationId={MOCK_IDS.partialErrors}
-        risk={httpError(503, 'PERSISTENCE_UNAVAILABLE')}
-        catalog={catalog}
-      />,
+    const { unmount } = renderRisk(
+      MOCK_IDS.partialErrors,
+      httpError(503, 'PERSISTENCE_UNAVAILABLE'),
     );
     expect(within(section()).getByRole('alert')).toHaveTextContent(
-      'Persistencia predictiva no disponible',
+      'Estimaciones no disponibles por ahora',
     );
+    expect(within(section()).getByRole('button', { name: 'Reintentar' })).toBeVisible();
     unmount();
 
-    render(
-      <RiskSection
-        reservationId={MOCK_IDS.availableBoth}
-        risk={ok(riskFixture(MOCK_IDS.availableBoth))}
-        catalog={httpError(503, 'ML_UNAVAILABLE')}
-      />,
+    renderRisk(
+      MOCK_IDS.availableBoth,
+      ok(riskFixture(MOCK_IDS.availableBoth)),
+      httpError(503, 'ML_UNAVAILABLE'),
     );
     expect(within(section()).getByText('31 %')).toBeVisible();
-    expect(within(section()).getByText(/Catálogo de modelos no disponible/)).toBeVisible();
+    expect(within(section()).queryByRole('alert')).not.toBeInTheDocument();
   });
 
   it('un modelo desconocido se muestra sin descartarlo ni suponer su algoritmo por posición', () => {
@@ -130,14 +114,12 @@ describe('Estimación predictiva (HU-02)', () => {
       ...risk,
       models: [{ ...risk.models[0]!, modelKey: 'modelo_nuevo_v2' }, risk.models[1]!],
     };
-    render(
-      <RiskSection reservationId={MOCK_IDS.availableBoth} risk={ok(unknown)} catalog={catalog} />,
-    );
+    renderRisk(MOCK_IDS.availableBoth, ok(unknown));
     const region = within(section());
     expect(region.getByRole('heading', { name: 'Random Forest · modelo_nuevo_v2' })).toBeVisible();
     expect(region.getByRole('heading', { name: 'XGBoost' })).toBeVisible();
     // RF del catálogo sigue apareciendo como modelo sin estimación: no se le asigna el resultado ajeno.
     expect(region.getByRole('heading', { name: 'Random Forest' })).toBeVisible();
-    expect(region.getByText('Sin estimación registrada para este modelo.')).toBeVisible();
+    expect(region.getByText('Sin estimación')).toBeVisible();
   });
 });

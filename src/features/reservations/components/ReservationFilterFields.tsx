@@ -1,7 +1,9 @@
 'use client';
 
+import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 import type { FieldErrors, UseFormRegister } from 'react-hook-form';
 
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select';
 import { MODEL_KEYS } from '@/features/prediction-models/api/contract';
@@ -10,13 +12,14 @@ import { fieldA11y, FilterField } from '@/features/reservations/components/Filte
 import { SORT_FIELD_LABELS, STATUS_FILTER_LABELS } from '@/features/reservations/model/labels';
 import { LISTABLE_STATUSES, SORT_FIELDS } from '@/features/reservations/model/list-query';
 import type { FiltersFormValues } from '@/features/reservations/validation/filters-schema';
+import { cn } from '@/lib/utils';
 
 interface FieldsProps {
   register: UseFormRegister<FiltersFormValues>;
   errors: FieldErrors<FiltersFormValues>;
 }
 
-/** Período, estado y clínica. La clínica se filtra por ID: no existe catálogo de nombres. */
+/** Filtros principales. La sede se filtra por número: no existe catálogo de nombres. */
 export function PeriodFields({ register, errors }: FieldsProps) {
   return (
     <>
@@ -39,10 +42,10 @@ export function PeriodFields({ register, errors }: FieldsProps) {
           ))}
         </NativeSelect>
       </FilterField>
-      <FilterField id="filter-clinic" label="Clínica (ID)" error={errors.clinicId?.message}>
+      <FilterField id="filter-clinic" label="Sede" error={errors.clinicId?.message}>
         <Input
           inputMode="numeric"
-          placeholder="Todas"
+          placeholder="Todas las sedes"
           autoComplete="off"
           {...fieldA11y('filter-clinic', errors.clinicId?.message)}
           {...register('clinicId')}
@@ -93,5 +96,39 @@ export function OrderFields({
         </NativeSelect>
       </FilterField>
     </>
+  );
+}
+
+/** Botón «Más filtros»: indica cuántos filtros secundarios están activos aunque esté cerrado. */
+export function MoreFiltersToggle(props: {
+  open: boolean;
+  activeCount: number;
+  controls: string;
+  onToggle: () => void;
+}) {
+  const { open, activeCount, controls, onToggle } = props;
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      aria-expanded={open}
+      aria-controls={controls}
+      onClick={onToggle}
+      className="-ml-2"
+    >
+      <SlidersHorizontal aria-hidden="true" />
+      Más filtros
+      {activeCount > 0 && (
+        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-semibold text-accent-foreground tabular-nums">
+          {activeCount}
+          <span className="sr-only"> {activeCount === 1 ? 'activo' : 'activos'}</span>
+        </span>
+      )}
+      <ChevronDown
+        aria-hidden="true"
+        className={cn('transition-transform', open && 'rotate-180')}
+      />
+    </Button>
   );
 }
