@@ -14,16 +14,21 @@ export function ScoreList({ scores }: { scores: ScoreView[] }) {
   return (
     <ul className="space-y-0.5">
       {scores.map((score, index) => (
-        <li key={score.modelKey} className="flex items-baseline gap-2 whitespace-nowrap">
-          <span
-            className={cn(
-              'min-w-[3.25rem] tabular-nums',
-              index === 0 ? 'font-semibold text-foreground' : 'text-muted-foreground',
-            )}
-          >
-            {score.percentageText}
-          </span>
-          <span className="text-xs text-muted-foreground">{score.label}</span>
+        <li key={score.modelKey}>
+          <div className="flex flex-wrap items-baseline gap-x-2">
+            <span
+              className={cn(
+                'min-w-[3.25rem] tabular-nums',
+                index === 0 ? 'font-semibold text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {score.percentageText}
+            </span>
+            <span className="text-xs text-muted-foreground">{score.label}</span>
+          </div>
+          {score.experimentalLabel && (
+            <p className="text-xs text-muted-foreground">{score.experimentalLabel}</p>
+          )}
         </li>
       ))}
     </ul>

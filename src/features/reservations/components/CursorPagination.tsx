@@ -10,6 +10,7 @@ interface CursorPaginationProps {
   nextHref: string | null;
   firstHref: string;
   rowCount: number;
+  pageSize: number;
 }
 
 export function describePageCount(pageNumber: number, rowCount: number): string {
@@ -22,19 +23,22 @@ export function describePageCount(pageNumber: number, rowCount: number): string 
  * El cursor es opaco; el historial de cursores vive en la URL junto con los filtros.
  */
 export function CursorPagination(props: CursorPaginationProps) {
-  const { pageNumber, previousHref, nextHref, firstHref, rowCount } = props;
+  const { pageNumber, previousHref, nextHref, firstHref, rowCount, pageSize } = props;
   return (
     <nav
       aria-label="Paginación de reservas"
       className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
     >
-      <p className="text-[13px] text-muted-foreground tabular-nums">
-        {describePageCount(pageNumber, rowCount)}
-      </p>
+      <div className="text-[13px] text-muted-foreground tabular-nums">
+        <p>{describePageCount(pageNumber, rowCount)}</p>
+        <p className="text-xs">Hasta {pageSize} reservas por página</p>
+      </div>
       <div className="flex items-center gap-2">
         {pageNumber > 2 && (
           <Button asChild variant="ghost" size="sm">
-            <Link href={firstHref}>Primera página</Link>
+            <Link href={firstHref} prefetch={false}>
+              Primera página
+            </Link>
           </Button>
         )}
         <PaginationLink href={previousHref} label="Anterior" direction="previous" />
@@ -53,11 +57,16 @@ function PaginationLink({
   label: string;
   direction: 'previous' | 'next';
 }) {
-  // «Siguiente» solo existe con `nextCursor`; «Anterior» solo fuera de la primera página.
-  if (!href) return null;
+  if (!href) {
+    return (
+      <Button variant="outline" size="sm" disabled>
+        {label}
+      </Button>
+    );
+  }
   return (
     <Button asChild variant="outline" size="sm">
-      <Link href={href} rel={direction === 'next' ? 'next' : 'prev'}>
+      <Link href={href} prefetch={false} rel={direction === 'next' ? 'next' : 'prev'}>
         {direction === 'previous' && <ChevronLeft aria-hidden="true" />}
         {label}
         {direction === 'next' && <ChevronRight aria-hidden="true" />}

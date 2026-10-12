@@ -3,8 +3,7 @@ import { formatLimaDateTime } from '@/lib/dates/lima';
 import { formatPercentage } from '@/lib/format/percentage';
 
 /**
- * Estimación de un modelo independiente: sin colores ni umbrales de riesgo, sin promedio ni
- * ganador. La versión y el hash del modelo se consultan en el diagnóstico de desarrollo.
+ * Score y banda persistidos de un modelo independiente. No se calculan umbrales en el frontend.
  */
 export function ModelScoreCard({ slot }: { slot: ModelSlot }) {
   const { identity, result } = slot;
@@ -16,6 +15,14 @@ export function ModelScoreCard({ slot }: { slot: ModelSlot }) {
           <p className="mt-1 text-[28px] leading-tight font-semibold tracking-[-0.02em] tabular-nums">
             {formatPercentage(result.percentageNoShow)}
           </p>
+          {result.experimentalRisk && (
+            <p className="mt-2 text-[13px] font-medium">{result.experimentalRisk.label}</p>
+          )}
+          {result.experimentalRiskUnavailableReason && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Sin banda exploratoria: este score se registró sin una política de investigación.
+            </p>
+          )}
           <p className="mt-1 text-xs text-muted-foreground tabular-nums">
             Calculada el {formatLimaDateTime(result.scoredAt)}
           </p>

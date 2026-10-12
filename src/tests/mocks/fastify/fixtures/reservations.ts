@@ -1,3 +1,4 @@
+import type { ExperimentalRiskLevel } from '@/features/reservation-risk/api/experimental-risk.contract';
 import type { ReservationListItem } from '@/features/reservations/api/contract';
 import { addCalendarDays, todayInLima } from '@/lib/dates/calendar';
 
@@ -32,6 +33,34 @@ function limaInstant(dayOffset: number, time: string, now: Date): string {
 export interface MockScore {
   model: typeof RF | typeof XGB;
   probability: number;
+  experimentalLevel?: ExperimentalRiskLevel;
+}
+
+/** Política y bandas SINTÉTICAS explícitas para probar v2; nunca clasifican datos reales. */
+export function mockExperimentalRisk(score: MockScore) {
+  if (!score.experimentalLevel) return null;
+  const labels = {
+    LOW: 'Bajo (exploratorio)',
+    MEDIUM: 'Medio (exploratorio)',
+    HIGH: 'Alto (exploratorio)',
+  } as const;
+  return {
+    level: score.experimentalLevel,
+    label: labels[score.experimentalLevel],
+    status: 'RESEARCH_PROVISIONAL' as const,
+    classificationBasis: 'RESEARCH_PROVISIONAL' as const,
+    policyId: `synthetic-${score.model.key}`,
+    policyVersion: 'synthetic-research-v2',
+    policyHash: (score.model.key === RF.key ? 'a' : 'b').repeat(64),
+    lowUpperThreshold: score.model.key === RF.key ? 0.2 : 0.3,
+    highLowerThreshold: score.model.key === RF.key ? 0.4 : 0.6,
+    boundaryRule: 'LOW:p<t_low;MEDIUM:t_low<=p<t_high;HIGH:p>=t_high',
+    meaning: 'relative_score_band_not_validated_absolute_risk' as const,
+    scoreSpace: 'raw_probability_no_show' as const,
+    warnings: ['Política sintética exclusiva de pruebas.'],
+    approvedBy: null,
+    operationalUseAllowed: false as const,
+  };
 }
 
 export interface MockReservation {
@@ -59,8 +88,8 @@ export const MOCK_RESERVATIONS: readonly MockReservation[] = [
     availability: 'AVAILABLE_EXPLORATORY',
     reasons: [],
     scores: [
-      { model: RF, probability: 0.31 },
-      { model: XGB, probability: 0.274 },
+      { model: RF, probability: 0.31, experimentalLevel: 'MEDIUM' },
+      { model: XGB, probability: 0.274, experimentalLevel: 'LOW' },
     ],
   },
   {
@@ -172,6 +201,7 @@ export function toScoreSummary(score: MockScore, now: Date) {
     scoredAt: limaInstant(-1, '09:00', now),
     predictionRunId: `run-${score.model.hash}`,
     riskLevel: null,
+    experimentalRisk: mockExperimentalRisk(score),
   };
 }
 
@@ -191,7 +221,13 @@ export function toReservationBody(reservation: MockReservation, now: Date) {
   } as const;
 }
 
-export function toListItem(reservation: MockReservation, now: Date): ReservationListItem {
+export function toListItem(
+  reservation: MockReservation,
+  now: Date,
+  modelKey: string = RF.key,
+): ReservationListItem {
+  const selectedScore = reservation.scores.find((score) => score.model.key === modelKey);
+  const experimentalRisk = selectedScore ? mockExperimentalRisk(selectedScore) : null;
   return {
     ...toReservationBody(reservation, now),
     risk: {
@@ -199,7 +235,11 @@ export function toListItem(reservation: MockReservation, now: Date): Reservation
       notScorableReasons: toReasons(reservation.reasons),
       riskLevel: null,
       riskPolicyStatus: 'pending_validation',
-      classificationUnavailable: true,
+      classificationUnavailable: experimentalRisk === null,
+      operationalClassificationUnavailable: true,
+      experimentalClassificationUnavailable: experimentalRisk === null,
+      experimentalRisk,
+      experimentalPolicyCurrent: experimentalRisk !== null,
       validationStatus: 'EXPLORATORY_NOT_VALIDATED',
       probabilities: reservation.scores.map((score) => toScoreSummary(score, now)),
     },

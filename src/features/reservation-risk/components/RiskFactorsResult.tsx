@@ -4,6 +4,7 @@ import { Notice } from '@/components/shared/Notice';
 import { resolveModelIdentity } from '@/features/prediction-models/model/model-identity';
 import type { RiskFactors } from '@/features/reservation-risk/api/factors.contract';
 import { FactorTable } from '@/features/reservation-risk/components/FactorTable';
+import { RiskFootnote } from '@/features/reservation-risk/components/RiskFootnote';
 import { NON_CAUSAL_NOTE, toFactorViews } from '@/features/reservation-risk/model/factors';
 import { formatPercentage } from '@/lib/format/percentage';
 
@@ -46,6 +47,11 @@ export function RiskFactorsResult({ data }: { data: RiskFactors }) {
           </>
         )}
       </p>
+      {data.persistedScore.available &&
+        data.persistedScore.sameModelIdentity &&
+        data.persistedScore.experimentalRisk && (
+          <p className="text-[13px] font-medium">{data.persistedScore.experimentalRisk.label}</p>
+        )}
       {factors.length === 0 ? (
         <p className="rounded-lg border border-dashed px-4 py-3 text-[13px] text-muted-foreground">
           Los factores de esta estimación no están disponibles.
@@ -63,6 +69,11 @@ export function RiskFactorsResult({ data }: { data: RiskFactors }) {
         <Info aria-hidden="true" className="mt-px size-3.5 shrink-0" />
         {NON_CAUSAL_NOTE}
       </p>
+      <p className="text-xs text-muted-foreground">
+        Las magnitudes SHAP de Random Forest y XGBoost no se comparan directamente: utilizan escalas
+        distintas.
+      </p>
+      <RiskFootnote />
       <AboutFactors data={data} hasSensitive={factors.some((factor) => factor.sensitive)} />
     </div>
   );

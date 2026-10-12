@@ -9,8 +9,16 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { MODEL_KEYS } from '@/features/prediction-models/api/contract';
 import { resolveModelIdentity } from '@/features/prediction-models/model/model-identity';
 import { fieldA11y, FilterField } from '@/features/reservations/components/FilterField';
-import { SORT_FIELD_LABELS, STATUS_FILTER_LABELS } from '@/features/reservations/model/labels';
-import { LISTABLE_STATUSES, SORT_FIELDS } from '@/features/reservations/model/list-query';
+import {
+  EXPERIMENTAL_RISK_LABELS,
+  SORT_FIELD_LABELS,
+  STATUS_FILTER_LABELS,
+} from '@/features/reservations/model/labels';
+import {
+  EXPERIMENTAL_RISK_LEVELS,
+  LISTABLE_STATUSES,
+  SORT_FIELDS,
+} from '@/features/reservations/model/list-query';
 import type { FiltersFormValues } from '@/features/reservations/validation/filters-schema';
 import { cn } from '@/lib/utils';
 
@@ -55,47 +63,72 @@ export function PeriodFields({ register, errors }: FieldsProps) {
   );
 }
 
-/** Orden, modelo y tamaño de página. No existe opción de orden por nivel de riesgo. */
-export function OrderFields({
+/** Orden y bandas de investigación del modelo elegido, sin clasificación operativa. */
+export function OrderFields({ register }: Pick<FieldsProps, 'register'>) {
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <FilterField id="filter-sort" label="Ordenar por">
+          <NativeSelect id="filter-sort" className="w-full" {...register('sort')}>
+            {SORT_FIELDS.map((value) => (
+              <NativeSelectOption key={value} value={value}>
+                {SORT_FIELD_LABELS[value]}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </FilterField>
+        <FilterField id="filter-direction" label="Dirección">
+          <NativeSelect id="filter-direction" className="w-full" {...register('direction')}>
+            <NativeSelectOption value="asc">Ascendente</NativeSelectOption>
+            <NativeSelectOption value="desc">Descendente</NativeSelectOption>
+          </NativeSelect>
+        </FilterField>
+        <FilterField id="filter-model" label="Modelo">
+          <NativeSelect id="filter-model" className="w-full" {...register('modelKey')}>
+            {MODEL_KEYS.map((key) => (
+              <NativeSelectOption key={key} value={key}>
+                {resolveModelIdentity(key).label}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </FilterField>
+        <FilterField id="filter-experimental-level" label="Banda exploratoria">
+          <NativeSelect
+            id="filter-experimental-level"
+            className="w-full"
+            {...register('experimentalRiskLevel')}
+          >
+            <NativeSelectOption value="">Todas las bandas</NativeSelectOption>
+            {EXPERIMENTAL_RISK_LEVELS.map((level) => (
+              <NativeSelectOption key={level} value={level}>
+                {EXPERIMENTAL_RISK_LABELS[level]}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </FilterField>
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Las bandas y el orden por estimación corresponden al modelo elegido. Son experimentales: no
+        es una priorización validada ni riesgo operativo aprobado.
+      </p>
+    </>
+  );
+}
+
+export function PageSizeField({
   register,
   pageSizes,
 }: Pick<FieldsProps, 'register'> & { pageSizes: number[] }) {
   return (
-    <>
-      <FilterField id="filter-sort" label="Ordenar por">
-        <NativeSelect id="filter-sort" className="w-full" {...register('sort')}>
-          {SORT_FIELDS.map((value) => (
-            <NativeSelectOption key={value} value={value}>
-              {SORT_FIELD_LABELS[value]}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </FilterField>
-      <FilterField id="filter-direction" label="Dirección">
-        <NativeSelect id="filter-direction" className="w-full" {...register('direction')}>
-          <NativeSelectOption value="asc">Ascendente</NativeSelectOption>
-          <NativeSelectOption value="desc">Descendente</NativeSelectOption>
-        </NativeSelect>
-      </FilterField>
-      <FilterField id="filter-model" label="Modelo">
-        <NativeSelect id="filter-model" className="w-full" {...register('modelKey')}>
-          {MODEL_KEYS.map((key) => (
-            <NativeSelectOption key={key} value={key}>
-              {resolveModelIdentity(key).label}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </FilterField>
-      <FilterField id="filter-limit" label="Por página">
-        <NativeSelect id="filter-limit" className="w-full" {...register('limit')}>
-          {pageSizes.map((size) => (
-            <NativeSelectOption key={size} value={String(size)}>
-              {size}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </FilterField>
-    </>
+    <FilterField id="filter-limit" label="Por página">
+      <NativeSelect id="filter-limit" className="w-full" {...register('limit')}>
+        {pageSizes.map((size) => (
+          <NativeSelectOption key={size} value={String(size)}>
+            {size}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
+    </FilterField>
   );
 }
 

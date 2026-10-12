@@ -38,17 +38,19 @@ describe('Tabla de reservas (HU-01)', () => {
     const row = within(rowOf(MOCK_IDS.availableBoth));
     expect(row.getByText(`#${MOCK_IDS.availableBoth}`)).toBeVisible();
     expect(row.getByText('Sede #2')).toBeVisible();
-    expect(row.getByText('31 %')).toBeVisible();
-    expect(row.getByText('27.4 %')).toBeVisible();
+    expect(row.getByText('31.00 %')).toBeVisible();
+    expect(row.getByText('27.40 %')).toBeVisible();
     expect(row.getByText('Random Forest')).toBeVisible();
     expect(row.getByText('XGBoost')).toBeVisible();
+    expect(row.getByText('Medio (exploratorio)')).toBeVisible();
+    expect(row.getByText('Bajo (exploratorio)')).toBeVisible();
     expect(row.getByText('Programada')).toBeVisible();
   });
 
   it('muestra un score real de 0 % y un único modelo', () => {
     render(<ReservationsTable rows={rowsFor(MOCK_IDS.rfOnlyZero)} caption="Reservas" />);
     const row = within(rowOf(MOCK_IDS.rfOnlyZero));
-    expect(row.getByText('0 %')).toBeVisible();
+    expect(row.getByText('0.00 %')).toBeVisible();
     expect(row.queryByText('XGBoost')).not.toBeInTheDocument();
   });
 
@@ -97,7 +99,7 @@ describe('Tabla de reservas (HU-01)', () => {
     expect(card.getByText(`Reserva #${MOCK_IDS.availableBoth}`)).toBeVisible();
     expect(card.getByText(/Sede #2/)).toBeVisible();
     expect(card.getByText('Programada')).toBeVisible();
-    expect(card.getByText('31 %')).toBeVisible();
+    expect(card.getByText('31.00 %')).toBeVisible();
     expect(screen.getByText('Sin estimación')).toBeVisible();
   });
 });
@@ -141,6 +143,7 @@ describe('Paginación por cursor', () => {
         nextHref="/reservations?cursor=C1"
         firstHref="/reservations"
         rowCount={25}
+        pageSize={25}
       />,
     );
     expect(screen.getByText('25 reservas en esta página')).toBeVisible();
@@ -149,6 +152,8 @@ describe('Paginación por cursor', () => {
       '/reservations?cursor=C1',
     );
     expect(screen.queryByRole('link', { name: 'Anterior' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Anterior' })).toBeDisabled();
+    expect(screen.getByText('Hasta 25 reservas por página')).toBeVisible();
 
     rerender(
       <CursorPagination
@@ -157,9 +162,11 @@ describe('Paginación por cursor', () => {
         nextHref={null}
         firstHref="/reservations"
         rowCount={4}
+        pageSize={25}
       />,
     );
     expect(screen.queryByRole('link', { name: 'Siguiente' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled();
     expect(screen.getByRole('link', { name: 'Anterior' })).toBeVisible();
     expect(screen.getByRole('link', { name: 'Primera página' })).toHaveAttribute(
       'href',

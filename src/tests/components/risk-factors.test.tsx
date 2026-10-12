@@ -43,6 +43,27 @@ async function requestFactors(model?: string) {
 beforeEach(() => vi.clearAllMocks());
 
 describe('Factores relacionados con la estimación (HU-05)', () => {
+  it('oculta la explicación anterior al elegir otro modelo y espera una solicitud explícita', async () => {
+    actions.loadRiskFactorsAction.mockResolvedValueOnce(
+      ok(factorsFixture(MOCK_IDS.availableBoth, RF.key)),
+    );
+    actions.loadRiskFactorsAction.mockResolvedValueOnce(
+      ok(factorsFixture(MOCK_IDS.availableBoth, XGB.key)),
+    );
+    renderPanel();
+    const user = await requestFactors();
+    await screen.findByRole('table');
+    await user.selectOptions(screen.getByLabelText('Modelo'), XGB.key);
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(actions.loadRiskFactorsAction).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', { name: 'Ver factores' }));
+    expect(
+      await screen.findByRole('columnheader', { name: 'Contribución (log-odds)' }),
+    ).toBeVisible();
+    expect(screen.getByText(/no se comparan directamente/)).toBeVisible();
+    expect(screen.getByText('Bajo (exploratorio)')).toBeVisible();
+  });
+
   it('no consulta factores al renderizar ni al cambiar los selectores', async () => {
     renderPanel();
     const user = userEvent.setup();
@@ -92,9 +113,7 @@ describe('Factores relacionados con la estimación (HU-05)', () => {
     );
     renderPanel();
     const user = await requestFactors();
-    expect(
-      await screen.findByText(/no indican necesariamente las causas de una inasistencia/),
-    ).toBeVisible();
+    expect(await screen.findByText(/no son causas demostradas de una inasistencia/)).toBeVisible();
     expect(screen.queryByText(/causa la inasistencia|porque el cliente/i)).not.toBeInTheDocument();
     expect(screen.getByText(/no implica causalidad/)).not.toBeVisible();
     await user.click(screen.getByText('Acerca de estos factores'));
@@ -172,6 +191,18 @@ describe('Factores relacionados con la estimación (HU-05)', () => {
 });
 
 describe('Sección de factores', () => {
+  it('sin scores persistidos no ofrece consultar factores', () => {
+    render(
+      <RiskFactorsSection
+        reservationId={MOCK_IDS.notScored}
+        risk={ok(riskFixture(MOCK_IDS.notScored))}
+        catalog={ok(catalogFixture)}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Ver factores' })).not.toBeInTheDocument();
+    expect(actions.loadRiskFactorsAction).not.toHaveBeenCalled();
+  });
+
   it('reserva no evaluable: sección compacta, sin controles ni consultas', () => {
     render(
       <RiskFactorsSection

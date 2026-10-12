@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { MODEL_KEYS } from '@/features/prediction-models/api/contract';
 import {
+  EXPERIMENTAL_RISK_LEVELS,
   isValidClinicId,
   LISTABLE_STATUSES,
   PAGE_SIZES,
@@ -31,6 +32,7 @@ export const filtersFormSchema = z
     sort: z.enum(SORT_FIELDS),
     direction: z.enum(SORT_DIRECTIONS),
     modelKey: z.enum(MODEL_KEYS),
+    experimentalRiskLevel: z.enum(['', ...EXPERIMENTAL_RISK_LEVELS]),
     // 1–100 según contrato; la URL puede traer un tamaño válido fuera de las opciones habituales.
     limit: z
       .string()
@@ -54,6 +56,7 @@ export function toFormValues(filters: ReservationListFilters): FiltersFormValues
     sort: filters.sort,
     direction: filters.direction,
     modelKey: filters.modelKey,
+    experimentalRiskLevel: filters.experimentalRiskLevel ?? '',
     limit: String(filters.limit),
   };
 }
@@ -67,6 +70,8 @@ export function toFilters(values: z.output<typeof filtersFormSchema>): Reservati
     sort: values.sort,
     direction: values.direction,
     modelKey: values.modelKey,
+    experimentalRiskLevel:
+      values.experimentalRiskLevel === '' ? null : values.experimentalRiskLevel,
     limit: Number(values.limit),
   };
 }

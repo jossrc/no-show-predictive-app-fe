@@ -24,10 +24,12 @@ test('detalle con estimaciones RF y XGBoost, factores en tabla e historial', asy
   await expect(page.getByRole('main')).toContainText('Sede #2');
   const risk = region(page, RISK);
   await expect(risk.getByRole('heading', { name: 'Random Forest' })).toBeVisible();
-  await expect(risk.getByText('31 %')).toBeVisible();
-  await expect(risk.getByText('27.4 %')).toBeVisible();
+  await expect(risk.getByText('31.00 %')).toBeVisible();
+  await expect(risk.getByText('27.40 %')).toBeVisible();
   await expect(risk.getByText(/no indica confianza/)).toBeVisible();
-  await expect(risk.getByText(/No validadas para decisiones operativas/)).toBeVisible();
+  await expect(
+    risk.getByText(/No validadas ni aprobadas para decisiones operativas/),
+  ).toBeVisible();
   expect(actions).toHaveLength(0); // sin factores ni POST automáticos
 
   const factors = region(page, FACTORS);
@@ -68,7 +70,7 @@ test('NOT_SCORABLE: mensaje claro y proporcionado, sin códigos ni acciones pred
   await expect(risk.getByText('Estimación no disponible')).toBeVisible();
   await expect(
     risk.getByText(
-      'No contamos con información suficiente para calcular una estimación para esta cita.',
+      'Los servicios programados provienen de la réplica actual sin evidencia temporal de la reserva',
     ),
   ).toBeVisible();
   await expect(risk.getByText(/\d+ %/)).toHaveCount(0);
@@ -89,8 +91,8 @@ test('POST explícito: calcula la estimación y actualiza los resultados visible
   await expect(risk.getByText('Aún no hay una estimación')).toBeVisible();
   await risk.getByRole('button', { name: 'Calcular estimación' }).click();
   await expect(risk.getByText('Estimación calculada')).toBeVisible();
-  await expect(risk.getByText('42 %')).toBeVisible();
-  await expect(risk.getByText('39.1 %')).toBeVisible();
+  await expect(risk.getByText('42.00 %')).toBeVisible();
+  await expect(risk.getByText('39.10 %')).toBeVisible();
 });
 
 test('errores parciales localizados, sin reintentos automáticos', async ({ page }) => {

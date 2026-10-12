@@ -2,6 +2,11 @@ import { z } from 'zod';
 
 import { algorithmSchema, modelKeySchema } from '@/features/prediction-models/api/contract';
 import {
+  classificationAvailabilityFields,
+  experimentalRiskSchema,
+  experimentalRiskSummarySchema,
+} from '@/features/reservation-risk/api/experimental-risk.contract';
+import {
   isoDateTimeSchema,
   reasonSchema,
   requestIdSchema,
@@ -34,6 +39,7 @@ export const scoreSummarySchema = z.object({
   scoredAt: isoDateTimeSchema,
   predictionRunId: z.string(),
   riskLevel: riskLevelSchema,
+  experimentalRisk: experimentalRiskSummarySchema.nullable(),
 });
 export type ScoreSummary = z.infer<typeof scoreSummarySchema>;
 
@@ -42,6 +48,8 @@ export const modelResultSchema = z.object({
   algorithm: algorithmSchema,
   modelVersion: z.string(),
   modelHash: z.string(),
+  modelHashSha256: z.string().nullable(),
+  scoringApiVersion: z.enum(['v1', 'v2']),
   probabilityNoShow: probabilitySchema,
   percentageNoShow: percentageSchema,
   target: z.literal('NO_SHOW_CANDIDATE'),
@@ -49,6 +57,8 @@ export const modelResultSchema = z.object({
   calibrationStatus: z.string(),
   operationalUseAllowed: z.literal(false),
   riskLevel: riskLevelSchema,
+  experimentalRisk: experimentalRiskSchema.nullable(),
+  experimentalRiskUnavailableReason: z.literal('SCORED_WITHOUT_RESEARCH_POLICY').nullable(),
   predictionAt: isoDateTimeSchema,
   scoredAt: isoDateTimeSchema,
   predictionRunId: z.string(),
@@ -87,6 +97,9 @@ export const riskAssessmentSchema = z.object({
   riskPolicyStatus: riskPolicyStatusSchema,
   riskPolicyVersion: z.string().nullable(),
   classificationUnavailable: z.boolean(),
+  ...classificationAvailabilityFields,
+  classificationBasis: z.literal('RESEARCH_PROVISIONAL').nullable(),
+  experimentalRiskNotice: z.string().nullable(),
   validationStatus: z.literal('EXPLORATORY_NOT_VALIDATED'),
   operationalUseAllowed: z.literal(false),
   message: z.string(),

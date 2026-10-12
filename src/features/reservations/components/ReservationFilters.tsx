@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import {
   MoreFiltersToggle,
   OrderFields,
+  PageSizeField,
   PeriodFields,
 } from '@/features/reservations/components/ReservationFilterFields';
 import {
@@ -28,7 +29,7 @@ import {
 type FiltersFormOutput = ReturnType<typeof filtersFormSchema.parse>;
 
 /**
- * Filtros del listado (HU-03): fechas, estado y sede a la vista; orden, modelo y tamaño en
+ * Filtros del listado (HU-03): fechas, estado, sede y tamaño a la vista; orden, modelo y banda en
  * «Más filtros». Al aplicar se navega a una URL canónica nueva: el cursor se descarta y nunca
  * se envían `riskLevel` ni `sort=riskLevel`.
  */
@@ -41,9 +42,9 @@ export function ReservationFilters({ initial }: { initial: ReservationListFilter
     resolver: zodResolver(filtersFormSchema),
     defaultValues: toFormValues(initial),
   });
-  const [sort, direction, modelKey, limit] = useWatch({
+  const [sort, direction, modelKey, limit, experimentalRiskLevel] = useWatch({
     control: form.control,
-    name: ['sort', 'direction', 'modelKey', 'limit'],
+    name: ['sort', 'direction', 'modelKey', 'limit', 'experimentalRiskLevel'],
   });
 
   const navigate = (href: string) => startTransition(() => router.push(href));
@@ -57,8 +58,9 @@ export function ReservationFilters({ initial }: { initial: ReservationListFilter
       aria-busy={pending}
       className="mb-5 rounded-xl border bg-card p-4 shadow-surface sm:p-5"
     >
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-start">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto] lg:items-start">
         <PeriodFields register={form.register} errors={form.formState.errors} />
+        <PageSizeField register={form.register} pageSizes={pageSizeOptions(initial.limit)} />
         <div className="col-span-2 flex lg:col-span-1 lg:pt-[19px]">
           <Button type="submit" disabled={pending} className="w-full lg:w-auto">
             {pending ? 'Aplicando…' : 'Aplicar filtros'}
@@ -68,7 +70,13 @@ export function ReservationFilters({ initial }: { initial: ReservationListFilter
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <MoreFiltersToggle
           open={moreOpen}
-          activeCount={countAdvancedFilters({ sort, direction, modelKey, limit })}
+          activeCount={countAdvancedFilters({
+            sort,
+            direction,
+            modelKey,
+            limit,
+            experimentalRiskLevel,
+          })}
           controls={panelId}
           onToggle={() => setMoreOpen((open) => !open)}
         />
@@ -89,14 +97,7 @@ export function ReservationFilters({ initial }: { initial: ReservationListFilter
         </div>
       </div>
       <div id={panelId} hidden={!moreOpen} className="mt-3 border-t pt-4">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <OrderFields register={form.register} pageSizes={pageSizeOptions(initial.limit)} />
-        </div>
-        {sort === 'probabilityNoShow' && (
-          <p className="mt-3 text-xs text-muted-foreground">
-            El orden por estimación es experimental: no es una priorización validada.
-          </p>
-        )}
+        <OrderFields register={form.register} />
       </div>
     </form>
   );

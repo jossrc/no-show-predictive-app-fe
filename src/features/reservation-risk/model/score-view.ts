@@ -11,6 +11,7 @@ export interface ScoreView {
   label: string;
   shortLabel: string;
   percentageText: string;
+  experimentalLabel: string | null;
   /** Modelo seleccionado en el filtro (`modelKey` de la consulta). */
   selected: boolean;
 }
@@ -37,6 +38,7 @@ export function toScoreViews(
         label: identity.label,
         shortLabel: identity.known ? identity.shortLabel : '?',
         percentageText: formatPercentage(score.percentageNoShow),
+        experimentalLabel: score.experimentalRisk?.label ?? null,
         selected: score.modelKey === selectedModelKey,
       };
     });

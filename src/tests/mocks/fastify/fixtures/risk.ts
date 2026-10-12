@@ -1,5 +1,6 @@
 import {
   appointmentAt,
+  mockExperimentalRisk,
   type MockReservation,
   type MockScore,
   RF,
@@ -16,6 +17,8 @@ function modelResult(score: MockScore, now: Date) {
     algorithm,
     modelVersion: `${score.model.key}:${score.model.hash}`,
     modelHash: score.model.hash,
+    modelHashSha256: score.experimentalLevel ? score.model.hash.padEnd(64, '0') : null,
+    scoringApiVersion: score.experimentalLevel ? 'v2' : 'v1',
     probabilityNoShow: score.probability,
     percentageNoShow: score.probability * 100,
     target: 'NO_SHOW_CANDIDATE',
@@ -23,6 +26,10 @@ function modelResult(score: MockScore, now: Date) {
     calibrationStatus: 'not_operationally_validated',
     operationalUseAllowed: false,
     riskLevel: null,
+    experimentalRisk: mockExperimentalRisk(score),
+    experimentalRiskUnavailableReason: score.experimentalLevel
+      ? null
+      : 'SCORED_WITHOUT_RESEARCH_POLICY',
     predictionAt: new Date(now.getTime() - 20 * 86_400_000).toISOString(),
     scoredAt: new Date(now.getTime() - 86_400_000).toISOString(),
     predictionRunId: `run-${score.model.hash}`,
@@ -51,6 +58,7 @@ const STATUS_MESSAGES = {
 export function riskAssessment(reservation: MockReservation, scores: MockScore[], now: Date) {
   const status = scores.length > 0 ? 'AVAILABLE_EXPLORATORY' : reservation.availability;
   const scorable = status !== 'NOT_SCORABLE';
+  const hasBands = scores.some((score) => score.experimentalLevel);
   return {
     reservationId: reservation.id,
     status,
@@ -73,7 +81,13 @@ export function riskAssessment(reservation: MockReservation, scores: MockScore[]
     riskLevel: null,
     riskPolicyStatus: 'pending_validation',
     riskPolicyVersion: null,
-    classificationUnavailable: true,
+    classificationUnavailable: !hasBands,
+    operationalClassificationUnavailable: true,
+    experimentalClassificationUnavailable: !hasBands,
+    classificationBasis: hasBands ? 'RESEARCH_PROVISIONAL' : null,
+    experimentalRiskNotice: hasBands
+      ? 'Bandas relativas sintéticas, sin aprobación operativa.'
+      : null,
     validationStatus: 'EXPLORATORY_NOT_VALIDATED',
     operationalUseAllowed: false,
     message: STATUS_MESSAGES[status],
@@ -197,6 +211,10 @@ export function riskFactors(
       available: true,
       sameModelIdentity: true,
       probabilityNoShow: space.probability,
+      experimentalRisk: (() => {
+        const score = reservation.scores.find((score) => score.model.key === modelKey);
+        return score ? mockExperimentalRisk(score) : null;
+      })(),
     },
     explanation: {
       method: 'tree_shap',

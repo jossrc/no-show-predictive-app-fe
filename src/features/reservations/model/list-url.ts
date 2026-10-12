@@ -23,6 +23,7 @@ export function toBackendParams(query: ReservationListQuery): Record<string, str
     limit: String(query.limit),
   };
   if (query.clinicId) params.clinicId = query.clinicId;
+  if (query.experimentalRiskLevel) params.experimentalRiskLevel = query.experimentalRiskLevel;
   if (query.cursor) params.cursor = query.cursor;
   return params;
 }
@@ -41,6 +42,8 @@ export function toListSearchParams(
   if (filters.sort !== 'appointmentAt') params.set('sort', filters.sort);
   if (filters.direction !== 'asc') params.set('direction', filters.direction);
   if (filters.modelKey !== DEFAULT_MODEL_KEY) params.set('modelKey', filters.modelKey);
+  if (filters.experimentalRiskLevel)
+    params.set('experimentalRiskLevel', filters.experimentalRiskLevel);
   if (filters.limit !== DEFAULT_LIMIT) params.set('limit', String(filters.limit));
   if (page.cursor) {
     params.set('cursor', page.cursor);

@@ -12,6 +12,7 @@ import { RequestPredictionPanel } from '@/features/reservation-risk/components/R
 import { RiskFootnote } from '@/features/reservation-risk/components/RiskFootnote';
 import {
   AVAILABILITY_MESSAGES,
+  EXPERIMENTAL_BAND_NOTE,
   RISK_POLICY_PENDING_TEXT,
 } from '@/features/reservation-risk/model/availability';
 import { riskDiagnostics } from '@/features/reservation-risk/model/diagnostics';
@@ -41,11 +42,21 @@ function modelOptions(slots: ModelSlot[]) {
 
 function policyNote(risk: RiskAssessment): string {
   const approved = risk.riskPolicyStatus === 'approved' && risk.riskLevel !== null;
-  return approved ? `Nivel de riesgo informado: ${risk.riskLevel}.` : RISK_POLICY_PENDING_TEXT;
+  const operational = approved
+    ? `Nivel de riesgo informado: ${risk.riskLevel}.`
+    : RISK_POLICY_PENDING_TEXT;
+  return risk.experimentalClassificationUnavailable
+    ? operational
+    : `${EXPERIMENTAL_BAND_NOTE} ${operational}`;
 }
 
 /** NOT_SCORED / NOT_SCORABLE: estado funcional compacto, no un error. */
-function EstimateState({ status }: { status: keyof typeof AVAILABILITY_MESSAGES }) {
+function EstimateState({
+  status,
+  reasons,
+}: Pick<RiskAssessment, 'reasons'> & {
+  status: keyof typeof AVAILABILITY_MESSAGES;
+}) {
   const { title, text } = AVAILABILITY_MESSAGES[status];
   const Icon = status === 'NOT_SCORABLE' ? CircleSlash : CalendarClock;
   return (
@@ -55,7 +66,15 @@ function EstimateState({ status }: { status: keyof typeof AVAILABILITY_MESSAGES 
       </span>
       <div className="min-w-0 space-y-0.5">
         <p className="font-medium">{title}</p>
-        <p className="text-[13px] text-pretty text-muted-foreground">{text}</p>
+        {reasons.length > 0 ? (
+          <ul className="list-disc space-y-1 pl-4 text-[13px] text-pretty text-muted-foreground">
+            {reasons.map((reason, index) => (
+              <li key={`${reason.code}-${index}`}>{reason.message}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[13px] text-pretty text-muted-foreground">{text}</p>
+        )}
       </div>
     </div>
   );
@@ -113,7 +132,7 @@ export function RiskSection({ reservationId, risk, catalog }: RiskSectionProps) 
         {assessment.status === 'AVAILABLE_EXPLORATORY' ? (
           <Estimates risk={assessment} slots={slots} />
         ) : (
-          <EstimateState status={assessment.status} />
+          <EstimateState status={assessment.status} reasons={assessment.reasons} />
         )}
         {/* Misma posición en todos los estados: el resultado del cálculo persiste tras refrescar. */}
         <RequestPredictionPanel

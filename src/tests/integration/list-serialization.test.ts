@@ -39,6 +39,21 @@ async function sentParams(raw: Record<string, string>) {
 }
 
 describe('Serialización de filtros hacia Fastify (HU-03)', () => {
+  it.each(['LOW', 'MEDIUM', 'HIGH'])(
+    'envía la banda %s y el modelo sin convertirlos en riesgo operativo',
+    async (level) => {
+      const params = await sentParams({
+        experimentalRiskLevel: level,
+        modelKey: 'xgboost_full_v1',
+        sort: 'experimentalRisk',
+      });
+      expect(params.get('experimentalRiskLevel')).toBe(level);
+      expect(params.get('modelKey')).toBe('xgboost_full_v1');
+      expect(params.get('sort')).toBe('experimentalRisk');
+      expect(params.has('riskLevel')).toBe(false);
+    },
+  );
+
   it('nunca envía riskLevel aunque la URL lo contenga', async () => {
     const params = await sentParams({ from: '2026-12-01', to: '2026-12-31', riskLevel: 'LOW' });
     expect(params.has('riskLevel')).toBe(false);

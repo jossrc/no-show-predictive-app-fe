@@ -28,7 +28,21 @@ export const DIRECTION_LABELS: Readonly<Record<FactorDirection, string>> = {
 };
 
 export const NON_CAUSAL_NOTE =
-  'Estos factores ayudan a interpretar el cálculo, pero no indican necesariamente las causas de una inasistencia.';
+  'Estos factores describen asociaciones en el cálculo del modelo; no son causas demostradas de una inasistencia ni recomendaciones de acción.';
+
+const FEATURE_EXPLANATIONS: Readonly<Record<string, string>> = {
+  duration_minutes: 'Tiempo previsto para los servicios programados.',
+  booking_lead_days: 'Tiempo entre la creación de la reserva y la cita.',
+  is_fwa: 'Indicador FWA registrado en la agenda al reservar.',
+  days_since_previous_attended: 'Tiempo desde la última asistencia conocida al reservar.',
+  previous_no_show_rate: 'Proporción de inasistencias previas conocidas al reservar.',
+  previous_no_show: 'Número de inasistencias previas conocidas al reservar.',
+  previous_attended: 'Número de asistencias previas conocidas al reservar.',
+  age_at_booking: 'Edad registrada al crear la reserva.',
+  client_sex: 'Sexo registrado en los datos del cliente.',
+  appointment_hour: 'Hora programada de la cita.',
+  appointment_weekday: 'Día de la semana programado para la cita.',
+};
 
 const contributionFormatter = new Intl.NumberFormat('es-PE', {
   minimumFractionDigits: 3,
@@ -44,6 +58,7 @@ export function formatContribution(value: number): string {
 export interface FactorView {
   featureName: string;
   label: string;
+  explanation: string;
   direction: FactorDirection;
   directionLabel: string;
   contribution: number;
@@ -55,6 +70,9 @@ export function toFactorViews(factors: RiskFactor[]): FactorView[] {
   return factors.map((factor) => ({
     featureName: factor.featureName,
     label: factor.label,
+    explanation:
+      FEATURE_EXPLANATIONS[factor.featureName] ??
+      'Dato utilizado por el modelo para esta estimación.',
     direction: factor.direction,
     directionLabel: DIRECTION_LABELS[factor.direction],
     contribution: factor.contribution,

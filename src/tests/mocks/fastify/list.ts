@@ -3,8 +3,11 @@ import {
   appointmentAt,
   MOCK_CLINICS,
   MOCK_RESERVATIONS,
+  mockExperimentalRisk,
   type MockReservation,
+  RF,
   toListItem,
+  XGB,
 } from '@/tests/mocks/fastify/fixtures/reservations';
 import { mockError, mockOk, type MockResponse } from '@/tests/mocks/fastify/responses';
 
@@ -17,6 +20,10 @@ function encodeCursor(offset: number): string {
 function decodeCursor(cursor: string): number | null {
   const match = /^offset:(\d+)$/.exec(Buffer.from(cursor, 'base64url').toString());
   return match ? Number(match[1]) : null;
+}
+
+function selectedModel(params: URLSearchParams): string {
+  return params.get('modelKey') ?? RF.key;
 }
 
 function validateQuery(params: URLSearchParams): MockResponse | null {
@@ -42,22 +49,28 @@ function validateQuery(params: URLSearchParams): MockResponse | null {
   return null;
 }
 
-function probabilityFor(reservation: MockReservation, modelKey: string): number | null {
-  return reservation.scores.find((score) => score.model.key === modelKey)?.probability ?? null;
+function probabilityFor(
+  reservation: MockReservation,
+  modelKey: string,
+  requireBand: boolean,
+): number | null {
+  const score = reservation.scores.find((score) => score.model.key === modelKey);
+  return score && (!requireBand || score.experimentalLevel) ? score.probability : null;
 }
 
 function sortReservations(items: MockReservation[], params: URLSearchParams, now: Date) {
   const descending = params.get('direction') === 'desc';
   const modelKey = params.get('modelKey') ?? 'random_forest_full_v1';
+  const requireBand = params.get('sort') === 'experimentalRisk';
   const byDate = (a: MockReservation, b: MockReservation) =>
     appointmentAt(a, now).localeCompare(appointmentAt(b, now));
-  if (params.get('sort') !== 'probabilityNoShow') {
+  if (!['probabilityNoShow', 'experimentalRisk'].includes(params.get('sort') ?? '')) {
     return items.sort((a, b) => (descending ? byDate(b, a) : byDate(a, b)));
   }
   // Orden exploratorio por probabilidad, NULLS LAST, desempate cronológico.
   return items.sort((a, b) => {
-    const pa = probabilityFor(a, modelKey);
-    const pb = probabilityFor(b, modelKey);
+    const pa = probabilityFor(a, modelKey, requireBand);
+    const pb = probabilityFor(b, modelKey, requireBand);
     if (pa === null || pb === null) return pa === pb ? byDate(a, b) : pa === null ? 1 : -1;
     return (descending ? pb - pa : pa - pb) || byDate(a, b);
   });
@@ -68,6 +81,34 @@ function inPeriod(reservation: MockReservation, from: string, to: string, now: D
   const start = new Date(`${from}T00:00:00-05:00`).toISOString();
   const end = new Date(`${to}T23:59:59.999-05:00`).toISOString();
   return day >= start && day <= end;
+}
+
+function matchesExperimentalLevel(item: MockReservation, params: URLSearchParams): boolean {
+  const level = params.get('experimentalRiskLevel');
+  const modelKey = selectedModel(params);
+  return (
+    level === null ||
+    item.scores.some((score) => score.model.key === modelKey && score.experimentalLevel === level)
+  );
+}
+
+function mockExperimentalPolicy(modelKey: string) {
+  const band = mockExperimentalRisk({
+    model: modelKey === RF.key ? RF : XGB,
+    probability: 0.31,
+    experimentalLevel: 'MEDIUM',
+  });
+  if (!band) throw new Error('Política sintética ausente');
+  return {
+    modelKey,
+    policyId: band.policyId,
+    policyVersion: band.policyVersion,
+    policyHash: band.policyHash,
+    status: band.status,
+    classificationBasis: band.classificationBasis,
+    operationalUseAllowed: false,
+    notice: 'Política sintética exclusiva de pruebas.',
+  };
 }
 
 export function listMockReservations(params: URLSearchParams, now: Date): MockResponse {
@@ -88,9 +129,11 @@ export function listMockReservations(params: URLSearchParams, now: Date): MockRe
   const to = params.get('to') ?? '';
   const clinicId = params.get('clinicId');
   const limit = Number(params.get('limit') ?? '25');
+  const modelKey = selectedModel(params);
   const filtered = MOCK_RESERVATIONS.filter(
     (item) =>
       item.status === (params.get('status') ?? 'SCHEDULED') &&
+      matchesExperimentalLevel(item, params) &&
       (clinicId === null || String(item.clinicId) === clinicId) &&
       inPeriod(item, from, to, now),
   );
@@ -99,7 +142,7 @@ export function listMockReservations(params: URLSearchParams, now: Date): MockRe
   const hasMore = offset + limit < sorted.length;
 
   return mockOk({
-    data: page.map((item) => toListItem(item, now)),
+    data: page.map((item) => toListItem(item, now, modelKey)),
     pagination: { limit, nextCursor: hasMore ? encodeCursor(offset + limit) : null },
     period: {
       from,
@@ -116,7 +159,10 @@ export function listMockReservations(params: URLSearchParams, now: Date): MockRe
         params.get('sort') === 'probabilityNoShow' ? 'EXPLORATORY_SCORE_ORDER' : 'CHRONOLOGICAL',
     },
     riskPolicyStatus: 'pending_validation',
-    classificationUnavailable: true,
+    classificationUnavailable: false,
+    operationalClassificationUnavailable: true,
+    experimentalClassificationUnavailable: false,
+    experimentalRiskPolicy: mockExperimentalPolicy(modelKey),
     sourceStatus: 'SYNTHETIC_DEMO_ONLY',
     predictiveStoreAvailable: true,
   });

@@ -32,10 +32,12 @@ import {
 
 describe('Probabilidades exploratorias', () => {
   it('muestra 0 % y 100 % solo para scores reales y redondea solo la presentación', () => {
-    expect(formatPercentage(0)).toBe('0 %');
-    expect(formatPercentage(100)).toBe('100 %');
-    expect(formatPercentage(31.25)).toBe('31.3 %');
-    expect(formatPercentage(31)).toBe('31 %');
+    expect(formatPercentage(0)).toBe('0.00 %');
+    expect(formatPercentage(100)).toBe('100.00 %');
+    expect(formatPercentage(31.25)).toBe('31.25 %');
+    expect(formatPercentage(31)).toBe('31.00 %');
+    expect(formatPercentage(47.68103934551044)).toBe('47.68 %');
+    expect(formatPercentage(40.604040026664734)).toBe('40.60 %');
   });
 
   it('identifica modelos por modelKey, no por posición, sin elegir ganador', () => {
@@ -43,7 +45,11 @@ describe('Probabilidades exploratorias', () => {
     const reversed = [...item.risk.probabilities].reverse();
     const views = toScoreViews(reversed, XGB.key, null);
     expect(views.map((view) => view.modelKey)).toEqual([XGB.key, RF.key]);
-    expect(views[0]).toMatchObject({ shortLabel: 'XGB', percentageText: '27.4 %', selected: true });
+    expect(views[0]).toMatchObject({
+      shortLabel: 'XGB',
+      percentageText: '27.40 %',
+      selected: true,
+    });
   });
 
   it('una reserva sin scores no produce probabilidades', () => {

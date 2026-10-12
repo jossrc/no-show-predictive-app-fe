@@ -3,6 +3,7 @@ import {
   MODEL_KEYS,
   type ModelKey,
 } from '@/features/prediction-models/api/contract';
+import type { ExperimentalRiskLevel } from '@/features/reservation-risk/api/experimental-risk.contract';
 import { addCalendarDays, calendarDaysBetween, isCalendarDate } from '@/lib/dates/calendar';
 
 /**
@@ -13,11 +14,13 @@ import { addCalendarDays, calendarDaysBetween, isCalendarDate } from '@/lib/date
 export const LISTABLE_STATUSES = ['SCHEDULED', 'CANCELLED'] as const;
 export type ListableStatus = (typeof LISTABLE_STATUSES)[number];
 
-export const SORT_FIELDS = ['appointmentAt', 'probabilityNoShow'] as const;
+export const SORT_FIELDS = ['appointmentAt', 'probabilityNoShow', 'experimentalRisk'] as const;
 export type SortField = (typeof SORT_FIELDS)[number];
 
 export const SORT_DIRECTIONS = ['asc', 'desc'] as const;
 export type SortDirection = (typeof SORT_DIRECTIONS)[number];
+
+export const EXPERIMENTAL_RISK_LEVELS = ['LOW', 'MEDIUM', 'HIGH'] as const;
 
 export const PAGE_SIZES = [10, 25, 50, 100] as const;
 export const DEFAULT_LIMIT = 25;
@@ -38,6 +41,7 @@ export interface ReservationListFilters {
   sort: SortField;
   direction: SortDirection;
   modelKey: ModelKey;
+  experimentalRiskLevel: ExperimentalRiskLevel | null;
   limit: number;
 }
 
@@ -64,6 +68,7 @@ export function defaultFilters(today: string): ReservationListFilters {
     sort: 'appointmentAt',
     direction: 'asc',
     modelKey: DEFAULT_MODEL_KEY,
+    experimentalRiskLevel: null,
     limit: DEFAULT_LIMIT,
   };
 }
@@ -74,12 +79,13 @@ export function countAdvancedFilters(values: {
   direction: string;
   modelKey: string;
   limit: number | string;
+  experimentalRiskLevel?: string | null;
 }): number {
   return [
     values.sort !== 'appointmentAt',
     values.direction !== 'asc',
     values.modelKey !== DEFAULT_MODEL_KEY,
-    Number(values.limit) !== DEFAULT_LIMIT,
+    Boolean(values.experimentalRiskLevel),
   ].filter(Boolean).length;
 }
 
@@ -188,6 +194,12 @@ export function parseReservationListParams(raw: RawSearchParams, today: string):
   }
   const status = pickEnum(first(raw, 'status'), LISTABLE_STATUSES, 'SCHEDULED');
   const modelKey = pickEnum(first(raw, 'modelKey'), MODEL_KEYS, DEFAULT_MODEL_KEY);
+  const rawExperimentalLevel = first(raw, 'experimentalRiskLevel');
+  const experimentalLevel =
+    EXPERIMENTAL_RISK_LEVELS.find((level) => level === rawExperimentalLevel) ?? null;
+  if (rawExperimentalLevel !== undefined && !experimentalLevel) {
+    notices.push('La banda exploratoria indicada no era válida; se quitó ese filtro.');
+  }
   if (status.invalid)
     notices.push('El estado indicado no era válido; se muestran las reservas programadas.');
   if (modelKey.invalid)
@@ -200,6 +212,7 @@ export function parseReservationListParams(raw: RawSearchParams, today: string):
     clinicId: parseClinicId(first(raw, 'clinicId'), notices),
     ...parseSort(raw, notices),
     modelKey: modelKey.value,
+    experimentalRiskLevel: experimentalLevel,
     limit: parseLimit(first(raw, 'limit'), notices),
     ...parsePagination(raw, notices),
   };

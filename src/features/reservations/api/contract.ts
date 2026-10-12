@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
 import {
+  classificationAvailabilityFields,
+  experimentalRiskPolicySchema,
+  experimentalRiskSummarySchema,
+} from '@/features/reservation-risk/api/experimental-risk.contract';
+import {
   predictionAvailabilitySchema,
   scoreSummarySchema,
 } from '@/features/reservation-risk/api/risk.contract';
@@ -57,6 +62,9 @@ export const listItemRiskSchema = z.object({
   riskLevel: riskLevelSchema,
   riskPolicyStatus: riskPolicyStatusSchema,
   classificationUnavailable: z.boolean(),
+  ...classificationAvailabilityFields,
+  experimentalRisk: experimentalRiskSummarySchema.nullable(),
+  experimentalPolicyCurrent: z.boolean(),
   validationStatus: z.literal('EXPLORATORY_NOT_VALIDATED'),
   probabilities: z.array(scoreSummarySchema),
 });
@@ -82,6 +90,8 @@ export const reservationListSchema = z.object({
   }),
   riskPolicyStatus: z.string(),
   classificationUnavailable: z.boolean(),
+  ...classificationAvailabilityFields,
+  experimentalRiskPolicy: experimentalRiskPolicySchema.nullable(),
   sourceStatus: z.string(),
   predictiveStoreAvailable: z.boolean(),
   requestId: requestIdSchema,

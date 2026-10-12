@@ -1,3 +1,4 @@
+import type { ExperimentalRiskLevel } from '@/features/reservation-risk/api/experimental-risk.contract';
 import type { ReservationStatus } from '@/features/reservations/api/contract';
 import type { ListableStatus, SortField } from '@/features/reservations/model/list-query';
 
@@ -15,6 +16,13 @@ export const STATUS_FILTER_LABELS: Readonly<Record<ListableStatus, string>> = {
 export const SORT_FIELD_LABELS: Readonly<Record<SortField, string>> = {
   appointmentAt: 'Fecha de la cita',
   probabilityNoShow: 'Estimación (experimental)',
+  experimentalRisk: 'Banda exploratoria',
+};
+
+export const EXPERIMENTAL_RISK_LABELS: Readonly<Record<ExperimentalRiskLevel, string>> = {
+  LOW: 'Bajo (exploratorio)',
+  MEDIUM: 'Medio (exploratorio)',
+  HIGH: 'Alto (exploratorio)',
 };
 
 export const STALE_CLASSIFICATION_TEXT =

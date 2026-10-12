@@ -1,16 +1,20 @@
 /**
  * Representación visual de estimaciones exploratorias. Solo se redondea la presentación
- * (máximo un decimal); el valor original del backend no se modifica.
- * No existen umbrales ni colores de riesgo: la política está pendiente de validación.
+ * (dos decimales para los scores); el valor original del backend no se modifica.
  */
 const percentFormatter = new Intl.NumberFormat('es-PE', {
   minimumFractionDigits: 0,
   maximumFractionDigits: 1,
 });
 
-/** `31 %` a partir de `percentageNoShow` (0–100). Un score real de 0 se muestra como `0 %`. */
+const scoreFormatter = new Intl.NumberFormat('es-PE', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** Porcentaje de score sin calibrar (0–100), incluyendo scores reales de cero. */
 export function formatPercentage(percentageNoShow: number): string {
-  return `${percentFormatter.format(percentageNoShow)} %`;
+  return `${scoreFormatter.format(percentageNoShow)} %`;
 }
 
 /** Diferencia descriptiva entre modelos en puntos porcentuales. */
@@ -20,5 +24,5 @@ export function formatPercentagePoints(points: number): string {
 
 /** Tasa histórica 0–1 como porcentaje (no es una probabilidad predictiva). */
 export function formatRate(rate: number): string {
-  return formatPercentage(rate * 100);
+  return `${percentFormatter.format(rate * 100)} %`;
 }

@@ -19,6 +19,33 @@ const TODAY = '2026-10-11';
 const parse = (raw: Record<string, string | string[]>) => parseReservationListParams(raw, TODAY);
 
 describe('Parámetros del listado en la URL (HU-03)', () => {
+  it('conserva banda, modelo y orden exploratorio al avanzar y retroceder', () => {
+    const initial = parse({
+      experimentalRiskLevel: 'HIGH',
+      modelKey: 'xgboost_full_v1',
+      sort: 'experimentalRisk',
+      limit: '10',
+    }).query;
+    const second = parse(
+      Object.fromEntries(new URL(nextPageHref(initial, 'C1'), 'http://x').searchParams),
+    ).query;
+    expect(second).toMatchObject({
+      experimentalRiskLevel: 'HIGH',
+      modelKey: 'xgboost_full_v1',
+      sort: 'experimentalRisk',
+      limit: 10,
+      cursor: 'C1',
+    });
+    expect(previousPageHref(second)).toBe(buildListHref(initial));
+    expect(toBackendParams(second)).not.toHaveProperty('riskLevel');
+  });
+
+  it('quita una banda experimental inválida sin inventar otra', () => {
+    const { query, notices } = parse({ experimentalRiskLevel: 'EXTREME' });
+    expect(query.experimentalRiskLevel).toBeNull();
+    expect(notices).toEqual(['La banda exploratoria indicada no era válida; se quitó ese filtro.']);
+  });
+
   it('usa un rango predeterminado de 14 días desde hoy en Lima', () => {
     const { query, notices, periodError } = parse({});
     expect(query).toMatchObject({

@@ -1,6 +1,7 @@
 import { SectionCard } from '@/components/shared/SectionCard';
 import type { ModelCatalog } from '@/features/prediction-models/api/contract';
 import {
+  isKnownModelKey,
   resolveModelIdentity,
   selectableModelKeys,
 } from '@/features/prediction-models/model/model-identity';
@@ -21,7 +22,7 @@ const TITLE = 'Factores relacionados con la estimación';
  * posible (NOT_SCORABLE) la sección queda compacta y secundaria.
  */
 export function RiskFactorsSection({ reservationId, risk, catalog }: Props) {
-  if (risk.ok && risk.data.status === 'NOT_SCORABLE') {
+  if (risk.ok && risk.data.status !== 'AVAILABLE_EXPLORATORY') {
     return (
       <SectionCard title={TITLE}>
         <p className="-mt-1 text-[13px] text-muted-foreground">
@@ -32,7 +33,10 @@ export function RiskFactorsSection({ reservationId, risk, catalog }: Props) {
   }
 
   const models = catalog.ok ? catalog.data : null;
-  const options = selectableModelKeys(models).map((modelKey) => ({
+  const modelKeys = risk.ok
+    ? risk.data.models.map((model) => model.modelKey).filter(isKnownModelKey)
+    : selectableModelKeys(models);
+  const options = modelKeys.map((modelKey) => ({
     modelKey,
     label: resolveModelIdentity(modelKey, models).label,
   }));
@@ -40,7 +44,7 @@ export function RiskFactorsSection({ reservationId, risk, catalog }: Props) {
   return (
     <SectionCard
       title={TITLE}
-      description="Consulta qué datos tuvieron más peso en el cálculo de un modelo."
+      description="Selecciona un modelo y pulsa Ver factores para consultar su explicación SHAP."
     >
       <RiskFactorsPanel reservationId={reservationId} modelOptions={options} />
     </SectionCard>

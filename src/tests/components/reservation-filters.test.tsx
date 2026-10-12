@@ -26,12 +26,30 @@ const moreFilters = () => screen.getByRole('button', { name: /Más filtros/ });
 beforeEach(() => push.mockClear());
 
 describe('Filtros de reservas (HU-03)', () => {
+  it('aplica la banda exploratoria del modelo elegido y reinicia la paginación', async () => {
+    const user = userEvent.setup();
+    render(<ReservationFilters initial={initial} />);
+    await user.click(moreFilters());
+    await user.selectOptions(screen.getByLabelText('Banda exploratoria'), 'HIGH');
+    await user.selectOptions(screen.getByLabelText('Modelo'), 'xgboost_full_v1');
+    await user.selectOptions(screen.getByLabelText('Ordenar por'), 'experimentalRisk');
+    await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
+    await waitFor(() => expect(push).toHaveBeenCalled());
+    expect(Object.fromEntries(pushedParams())).toMatchObject({
+      experimentalRiskLevel: 'HIGH',
+      modelKey: 'xgboost_full_v1',
+      sort: 'experimentalRisk',
+    });
+    expect(pushedParams().has('riskLevel')).toBe(false);
+    expect(pushedParams().has('cursor')).toBe(false);
+  });
+
   it('muestra a la vista solo los filtros principales', () => {
     render(<ReservationFilters initial={initial} />);
-    for (const label of ['Desde', 'Hasta', 'Estado', 'Sede']) {
+    for (const label of ['Desde', 'Hasta', 'Estado', 'Sede', 'Por página']) {
       expect(screen.getByLabelText(label)).toBeVisible();
     }
-    for (const label of ['Ordenar por', 'Dirección', 'Modelo', 'Por página']) {
+    for (const label of ['Ordenar por', 'Dirección', 'Modelo', 'Banda exploratoria']) {
       expect(screen.getByLabelText(label)).not.toBeVisible();
     }
     expect(moreFilters()).toHaveAttribute('aria-expanded', 'false');
@@ -69,7 +87,7 @@ describe('Filtros de reservas (HU-03)', () => {
     await user.selectOptions(screen.getByLabelText('Dirección'), 'desc');
     await user.selectOptions(screen.getByLabelText('Modelo'), 'xgboost_full_v1');
     await user.selectOptions(screen.getByLabelText('Por página'), '50');
-    expect(moreFilters()).toHaveTextContent('4 activos');
+    expect(moreFilters()).toHaveTextContent('3 activos');
     await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
 
     await waitFor(() => expect(push).toHaveBeenCalled());
@@ -95,7 +113,7 @@ describe('Filtros de reservas (HU-03)', () => {
     const sortOptions = [
       ...(screen.getByLabelText('Ordenar por') as HTMLSelectElement).options,
     ].map((o) => o.value);
-    expect(sortOptions).toEqual(['appointmentAt', 'probabilityNoShow']);
+    expect(sortOptions).toEqual(['appointmentAt', 'probabilityNoShow', 'experimentalRisk']);
     expect(screen.queryByLabelText(/nivel de riesgo/i)).not.toBeInTheDocument();
   });
 

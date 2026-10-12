@@ -63,7 +63,12 @@ export function RiskFactorsPanel({ reservationId, modelOptions }: Props) {
 
   return (
     <div className="space-y-4">
-      <FactorsControls options={modelOptions} busy={query.isFetching} onRequest={setRequest}>
+      <FactorsControls
+        options={modelOptions}
+        busy={query.isFetching}
+        onRequest={setRequest}
+        onSelectionChange={() => setRequest(null)}
+      >
         <ClientDiagnostics
           subject="Factores relacionados con la estimación"
           sections={factorsDiagnostics(request, result)}
@@ -90,6 +95,7 @@ function FactorsControls(props: {
   options: ModelOption[];
   busy: boolean;
   onRequest: (request: FactorsRequest) => void;
+  onSelectionChange: () => void;
   children?: ReactNode;
 }) {
   const ids = useId();
@@ -108,7 +114,11 @@ function FactorsControls(props: {
           id={`${ids}-model`}
           className="w-full"
           value={modelKey}
-          onChange={(event) => setModelKey(event.target.value as ModelKey)}
+          disabled={props.busy}
+          onChange={(event) => {
+            setModelKey(event.target.value as ModelKey);
+            props.onSelectionChange();
+          }}
         >
           {props.options.map((option) => (
             <NativeSelectOption key={option.modelKey} value={option.modelKey}>
@@ -125,7 +135,11 @@ function FactorsControls(props: {
           id={`${ids}-topk`}
           className="w-full"
           value={String(topK)}
-          onChange={(event) => setTopK(Number(event.target.value))}
+          disabled={props.busy}
+          onChange={(event) => {
+            setTopK(Number(event.target.value));
+            props.onSelectionChange();
+          }}
         >
           {TOP_K_OPTIONS.map((value) => (
             <NativeSelectOption key={value} value={String(value)}>

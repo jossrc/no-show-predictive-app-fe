@@ -59,6 +59,7 @@ export function FactorTable({
                       Dato sensible
                     </span>
                   )}
+                  <p className="mt-1 text-xs text-muted-foreground">{factor.explanation}</p>
                   <span className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground sm:hidden">
                     <Icon aria-hidden="true" className="size-3.5 shrink-0" />
                     {factor.directionLabel}

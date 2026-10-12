@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { algorithmSchema } from '@/features/prediction-models/api/contract';
+import { experimentalRiskSummarySchema } from '@/features/reservation-risk/api/experimental-risk.contract';
 import { isoDateTimeSchema, requestIdSchema, riskPolicyStatusSchema } from '@/lib/api/schemas';
 
 /** HU-05: `GET …/risk/factors`. Fuente: GetRiskFactorsSchema.ts del backend. */
@@ -53,6 +54,7 @@ export const riskFactorsSchema = z.object({
     available: z.boolean(),
     sameModelIdentity: z.boolean(),
     probabilityNoShow: z.number().nullable(),
+    experimentalRisk: experimentalRiskSummarySchema.nullable(),
   }),
   explanation: z.object({
     method: z.literal('tree_shap'),

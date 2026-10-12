@@ -64,11 +64,17 @@ No existe autenticación de usuarios (HU-21/HU-22 son posteriores). Por eso el s
 en `127.0.0.1`, rechaza cabeceras `Host` externas y **el modo LIVE se rechaza en producción**. No
 desplegar públicamente.
 
-### Verificación manual contra el backend real (pendiente)
+### Verificación contra el backend real
 
-Con Fastify en marcha, abrir: `/reservations` (listado y filtros), el detalle de una reserva
-(«Estimación no disponible» esperado) y el historial en ambas pestañas. **No** pulsar «Calcular
-estimación» sobre reservas reales sin decidir conscientemente sus efectos de persistencia.
+El recorrido LIVE de Sprint 01 está documentado en
+[la verificación de reservas reales](docs/sprint-01-live-validation.md): `1281790` muestra RF
+47.68 % / Alto (exploratorio), XGBoost 40.60 % / Medio (exploratorio) y factores SHAP por modelo;
+`883973` conserva su estado no puntuable y explica los motivos de reprogramación.
+
+Con Fastify en marcha, abrir `/reservations` para comprobar fechas, tamaño de página y filtros
+por banda exploratoria del modelo elegido. Las bandas son relativas, sin calibración ni aprobación
+operativa. «Ver factores» consulta una explicación bajo demanda. **No** pulsar «Calcular estimación»
+sobre reservas reales sin decidir conscientemente sus efectos de persistencia.
 
 ## Comandos
 

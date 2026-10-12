@@ -41,8 +41,8 @@ test('carga el listado con estimaciones, sin niveles de riesgo, jerga técnica n
   await expect(page.getByRole('note')).toContainText('No son resultados reales');
   await expect(table(page).getByRole('row')).toHaveCount(8); // encabezado + 7 reservas programadas
   const both = rowOf(page, '900000000001001');
-  await expect(both).toContainText('31 %');
-  await expect(both).toContainText('27.4 %');
+  await expect(both).toContainText('31.00 %');
+  await expect(both).toContainText('27.40 %');
   await expect(rowOf(page, '900000000001002')).toContainText('Sin estimación');
   await expect(page.getByText(/Estimaciones experimentales/)).toHaveCount(1);
   await expect(page.getByText(/riesgo (bajo|medio|alto)/i)).toHaveCount(0);
@@ -75,6 +75,25 @@ test('aplica filtros principales y avanzados, conservándolos en la URL', async 
   await expect(page.getByRole('button', { name: /Más filtros/ })).toContainText('2');
   await expect(table(page).getByRole('row').nth(1)).toContainText('900000000001001');
   expect(page.url()).not.toContain('riskLevel');
+});
+
+test('filtra y ordena por banda exploratoria del modelo elegido', async ({ page }) => {
+  await open(page, '/reservations');
+  await expect(page.getByLabel('Por página')).toBeVisible();
+  await page.getByRole('button', { name: /Más filtros/ }).click();
+  await page.getByLabel('Banda exploratoria').selectOption('LOW');
+  await page.getByLabel('Modelo', { exact: true }).selectOption('xgboost_full_v1');
+  await page.getByLabel('Ordenar por').selectOption('experimentalRisk');
+  await page.getByLabel('Por página').selectOption('10');
+  await page.getByRole('button', { name: 'Aplicar filtros' }).click();
+  await expect(page).toHaveURL(/experimentalRiskLevel=LOW/);
+  await expect(table(page).getByRole('row')).toHaveCount(2);
+  await expect(rowOf(page, '900000000001001')).toContainText('Bajo (exploratorio)');
+  await expect(page.getByText(/Ordenadas por banda exploratoria de XGBoost/)).toBeVisible();
+  await expect(page.getByText('Hasta 10 reservas por página')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Anterior', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Siguiente', exact: true })).toBeDisabled();
+  expect(new URL(page.url()).searchParams.has('riskLevel')).toBe(false);
 });
 
 test('ignora riskLevel en la URL con un aviso y no lo envía al backend', async ({ page }) => {
