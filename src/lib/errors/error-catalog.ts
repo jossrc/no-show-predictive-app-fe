@@ -48,7 +48,7 @@ const CATALOG: Readonly<Record<string, ErrorPresentation>> = {
     retryable: false,
   },
   NOT_SCORABLE: {
-    title: 'Predicción no disponible',
+    title: 'Estimación no disponible',
     description: 'No contamos con información suficiente para calcularla.',
     retryable: false,
   },

@@ -1,4 +1,5 @@
 import type { ModelSlot } from '@/features/reservation-risk/model/risk-view';
+import { formatRelativeBand } from '@/features/reservations/model/labels';
 import { formatLimaDateTime } from '@/lib/dates/lima';
 import { formatPercentage } from '@/lib/format/percentage';
 
@@ -16,11 +17,13 @@ export function ModelScoreCard({ slot }: { slot: ModelSlot }) {
             {formatPercentage(result.percentageNoShow)}
           </p>
           {result.experimentalRisk && (
-            <p className="mt-2 text-[13px] font-medium">{result.experimentalRisk.label}</p>
+            <p className="mt-2 text-[13px] font-medium">
+              {formatRelativeBand(result.experimentalRisk.level)}
+            </p>
           )}
           {result.experimentalRiskUnavailableReason && (
             <p className="mt-2 text-xs text-muted-foreground">
-              Sin banda exploratoria: este score se registró sin una política de investigación.
+              Sin banda relativa para esta estimación.
             </p>
           )}
           <p className="mt-1 text-xs text-muted-foreground tabular-nums">

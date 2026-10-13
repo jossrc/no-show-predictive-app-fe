@@ -24,11 +24,14 @@ export const OUTPUT_SPACE_UNIT_HINTS: Readonly<Record<OutputSpace, string>> = {
 export const DIRECTION_LABELS: Readonly<Record<FactorDirection, string>> = {
   increases_model_output: 'Eleva la estimación',
   decreases_model_output: 'Reduce la estimación',
-  neutral: 'Sin efecto apreciable',
+  neutral: 'Sin efecto relevante',
 };
 
 export const NON_CAUSAL_NOTE =
-  'Estos factores describen asociaciones en el cálculo del modelo; no son causas demostradas de una inasistencia ni recomendaciones de acción.';
+  'Los factores muestran su influencia en el cálculo; no representan causas demostradas.';
+
+export const CROSS_MODEL_SHAP_NOTE =
+  'Las magnitudes SHAP de Random Forest y XGBoost no se comparan directamente: utilizan escalas distintas.';
 
 const FEATURE_EXPLANATIONS: Readonly<Record<string, string>> = {
   duration_minutes: 'Tiempo previsto para los servicios programados.',

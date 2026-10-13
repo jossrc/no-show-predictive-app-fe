@@ -198,7 +198,7 @@ export function parseReservationListParams(raw: RawSearchParams, today: string):
   const experimentalLevel =
     EXPERIMENTAL_RISK_LEVELS.find((level) => level === rawExperimentalLevel) ?? null;
   if (rawExperimentalLevel !== undefined && !experimentalLevel) {
-    notices.push('La banda exploratoria indicada no era válida; se quitó ese filtro.');
+    notices.push('La banda relativa indicada no era válida; se quitó ese filtro.');
   }
   if (status.invalid)
     notices.push('El estado indicado no era válido; se muestran las reservas programadas.');

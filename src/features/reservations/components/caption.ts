@@ -28,8 +28,8 @@ export function describeListScope(query: ReservationListQuery): string {
 export function describeSort(query: ReservationListQuery): string | null {
   if (query.sort === 'appointmentAt') return null;
   const direction = query.direction === 'desc' ? 'de mayor a menor' : 'de menor a mayor';
-  const criterion = query.sort === 'experimentalRisk' ? 'banda exploratoria' : 'estimación';
-  return `Ordenadas por ${criterion} de ${resolveModelIdentity(query.modelKey).label}, ${direction} (experimental)`;
+  const criterion = query.sort === 'experimentalRisk' ? 'banda relativa' : 'estimación';
+  return `Ordenadas por ${criterion} de ${resolveModelIdentity(query.modelKey).label}, ${direction}`;
 }
 
 export function reservationsCaption(query: ReservationListQuery): string {

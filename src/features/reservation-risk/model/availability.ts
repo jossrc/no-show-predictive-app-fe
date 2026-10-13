@@ -1,16 +1,14 @@
 import type { PredictionAvailability } from '@/features/reservation-risk/api/risk.contract';
 
-/** Advertencia científica breve: se muestra una sola vez, junto al resultado. */
+/** Aclaración breve: una sola vez por pantalla, junto a las estimaciones. */
 export const EXPERIMENTAL_NOTE =
-  'Estimación experimental no calibrada. No validada ni aprobada para decisiones operativas.';
-export const EXPERIMENTAL_NOTE_PLURAL =
-  'Estimaciones experimentales no calibradas. No validadas ni aprobadas para decisiones operativas.';
+  'Resultados orientativos. No utilizar para decisiones automáticas.';
+export const EXPERIMENTAL_NOTE_PLURAL = EXPERIMENTAL_NOTE;
 
-export const RISK_POLICY_PENDING_TEXT =
-  'La clasificación por niveles de riesgo operativo todavía no está disponible.';
-
-export const EXPERIMENTAL_BAND_NOTE =
-  'Las bandas Bajo/Medio/Alto (exploratorio) son relativas al score de cada modelo; no representan riesgo absoluto validado ni autorizan acciones automáticas.';
+export const ESTIMATES_ABOUT_NOTES = [
+  'Las bandas Alto, Medio y Bajo son relativas al resultado de cada modelo.',
+  'No representan un nivel de riesgo operativo validado.',
+] as const;
 
 /** Mensajes para el trabajador: estados funcionales esperados, no errores. */
 export const AVAILABILITY_MESSAGES: Readonly<

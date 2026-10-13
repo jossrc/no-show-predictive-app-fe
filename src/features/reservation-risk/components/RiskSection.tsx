@@ -9,12 +9,7 @@ import { isKnownModelKey } from '@/features/prediction-models/model/model-identi
 import type { RiskAssessment } from '@/features/reservation-risk/api/risk.contract';
 import { ModelScoreCard } from '@/features/reservation-risk/components/ModelScoreCard';
 import { RequestPredictionPanel } from '@/features/reservation-risk/components/RequestPredictionPanel';
-import { RiskFootnote } from '@/features/reservation-risk/components/RiskFootnote';
-import {
-  AVAILABILITY_MESSAGES,
-  EXPERIMENTAL_BAND_NOTE,
-  RISK_POLICY_PENDING_TEXT,
-} from '@/features/reservation-risk/model/availability';
+import { AVAILABILITY_MESSAGES } from '@/features/reservation-risk/model/availability';
 import { riskDiagnostics } from '@/features/reservation-risk/model/diagnostics';
 import {
   buildModelSlots,
@@ -22,7 +17,6 @@ import {
   predictionRequestAvailability,
 } from '@/features/reservation-risk/model/risk-view';
 import type { ApiResult } from '@/lib/api/result';
-import { formatPercentagePoints } from '@/lib/format/percentage';
 
 interface RiskSectionProps {
   reservationId: string;
@@ -38,16 +32,6 @@ function modelOptions(slots: ModelSlot[]) {
       ? [{ modelKey: slot.modelKey, label: slot.identity.label }]
       : [],
   );
-}
-
-function policyNote(risk: RiskAssessment): string {
-  const approved = risk.riskPolicyStatus === 'approved' && risk.riskLevel !== null;
-  const operational = approved
-    ? `Nivel de riesgo informado: ${risk.riskLevel}.`
-    : RISK_POLICY_PENDING_TEXT;
-  return risk.experimentalClassificationUnavailable
-    ? operational
-    : `${EXPERIMENTAL_BAND_NOTE} ${operational}`;
 }
 
 /** NOT_SCORED / NOT_SCORABLE: estado funcional compacto, no un error. */
@@ -80,30 +64,13 @@ function EstimateState({
   );
 }
 
-function Comparison({ risk }: { risk: RiskAssessment }) {
-  if (!risk.comparison) return null;
+function Estimates({ slots }: { slots: ModelSlot[] }) {
   return (
-    <p className="text-[13px] text-muted-foreground">
-      Diferencia entre modelos:{' '}
-      <span className="font-medium text-foreground tabular-nums">
-        {formatPercentagePoints(risk.comparison.absolutePercentagePointDifference)}
-      </span>{' '}
-      Es solo descriptiva: no indica confianza ni qué modelo es más preciso.
-    </p>
-  );
-}
-
-function Estimates({ risk, slots }: { risk: RiskAssessment; slots: ModelSlot[] }) {
-  return (
-    <>
-      <div className="grid divide-y overflow-hidden rounded-lg border bg-surface-subtle sm:grid-cols-2 sm:divide-x sm:divide-y-0">
-        {slots.map((slot) => (
-          <ModelScoreCard key={slot.modelKey} slot={slot} />
-        ))}
-      </div>
-      <Comparison risk={risk} />
-      <RiskFootnote plural={risk.models.length > 1} detail={policyNote(risk)} />
-    </>
+    <div className="grid divide-y overflow-hidden rounded-lg border bg-surface-subtle sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+      {slots.map((slot) => (
+        <ModelScoreCard key={slot.modelKey} slot={slot} />
+      ))}
+    </div>
   );
 }
 
@@ -130,7 +97,7 @@ export function RiskSection({ reservationId, risk, catalog }: RiskSectionProps) 
     <SectionCard title={TITLE} actions={diagnostics}>
       <div className="space-y-4">
         {assessment.status === 'AVAILABLE_EXPLORATORY' ? (
-          <Estimates risk={assessment} slots={slots} />
+          <Estimates slots={slots} />
         ) : (
           <EstimateState status={assessment.status} reasons={assessment.reasons} />
         )}

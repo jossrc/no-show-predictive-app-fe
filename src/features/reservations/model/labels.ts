@@ -15,15 +15,26 @@ export const STATUS_FILTER_LABELS: Readonly<Record<ListableStatus, string>> = {
 
 export const SORT_FIELD_LABELS: Readonly<Record<SortField, string>> = {
   appointmentAt: 'Fecha de la cita',
-  probabilityNoShow: 'Estimación (experimental)',
-  experimentalRisk: 'Banda exploratoria',
+  probabilityNoShow: 'Estimación',
+  experimentalRisk: 'Banda relativa',
 };
 
 export const EXPERIMENTAL_RISK_LABELS: Readonly<Record<ExperimentalRiskLevel, string>> = {
-  LOW: 'Bajo (exploratorio)',
-  MEDIUM: 'Medio (exploratorio)',
-  HIGH: 'Alto (exploratorio)',
+  LOW: 'Banda relativa: Bajo',
+  MEDIUM: 'Banda relativa: Medio',
+  HIGH: 'Banda relativa: Alto',
 };
+
+/** Opciones del filtro: el campo ya indica que son bandas relativas. */
+export const RELATIVE_BAND_OPTION_LABELS: Readonly<Record<ExperimentalRiskLevel, string>> = {
+  LOW: 'Bajo',
+  MEDIUM: 'Medio',
+  HIGH: 'Alto',
+};
+
+export function formatRelativeBand(level: ExperimentalRiskLevel): string {
+  return EXPERIMENTAL_RISK_LABELS[level];
+}
 
 export const STALE_CLASSIFICATION_TEXT =
   'La información de esta cita podría requerir actualización.';

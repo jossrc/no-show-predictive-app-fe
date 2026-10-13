@@ -10,7 +10,7 @@ import { MODEL_KEYS } from '@/features/prediction-models/api/contract';
 import { resolveModelIdentity } from '@/features/prediction-models/model/model-identity';
 import { fieldA11y, FilterField } from '@/features/reservations/components/FilterField';
 import {
-  EXPERIMENTAL_RISK_LABELS,
+  RELATIVE_BAND_OPTION_LABELS,
   SORT_FIELD_LABELS,
   STATUS_FILTER_LABELS,
 } from '@/features/reservations/model/labels';
@@ -92,7 +92,7 @@ export function OrderFields({ register }: Pick<FieldsProps, 'register'>) {
             ))}
           </NativeSelect>
         </FilterField>
-        <FilterField id="filter-experimental-level" label="Banda exploratoria">
+        <FilterField id="filter-experimental-level" label="Banda relativa">
           <NativeSelect
             id="filter-experimental-level"
             className="w-full"
@@ -101,16 +101,12 @@ export function OrderFields({ register }: Pick<FieldsProps, 'register'>) {
             <NativeSelectOption value="">Todas las bandas</NativeSelectOption>
             {EXPERIMENTAL_RISK_LEVELS.map((level) => (
               <NativeSelectOption key={level} value={level}>
-                {EXPERIMENTAL_RISK_LABELS[level]}
+                {RELATIVE_BAND_OPTION_LABELS[level]}
               </NativeSelectOption>
             ))}
           </NativeSelect>
         </FilterField>
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">
-        Las bandas y el orden por estimación corresponden al modelo elegido. Son experimentales: no
-        es una priorización validada ni riesgo operativo aprobado.
-      </p>
     </>
   );
 }

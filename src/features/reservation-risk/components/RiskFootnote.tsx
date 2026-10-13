@@ -1,32 +1,39 @@
-import { Info } from 'lucide-react';
+import { ChevronRight, Info } from 'lucide-react';
 
 import {
+  ESTIMATES_ABOUT_NOTES,
   EXPERIMENTAL_NOTE,
-  EXPERIMENTAL_NOTE_PLURAL,
 } from '@/features/reservation-risk/model/availability';
 import { cn } from '@/lib/utils';
 
 /**
- * Advertencia científica junto a las estimaciones: preserva su significado (experimentales, no
- * aptas para decisiones operativas) sin repetirla en varios lugares.
+ * Aclaración breve junto a las estimaciones. Se muestra una sola vez por pantalla.
  */
-export function RiskFootnote({
-  plural = false,
-  detail,
-  className,
-}: {
-  plural?: boolean;
-  /** Aclaración adicional opcional, p. ej. la clasificación de riesgo pendiente. */
-  detail?: string | null;
-  className?: string;
-}) {
+export function RiskFootnote({ className }: { className?: string }) {
   return (
     <p className={cn('flex gap-2 text-xs leading-relaxed text-muted-foreground', className)}>
       <Info aria-hidden="true" className="mt-px size-3.5 shrink-0" />
-      <span>
-        {plural ? EXPERIMENTAL_NOTE_PLURAL : EXPERIMENTAL_NOTE}
-        {detail && <> {detail}</>}
-      </span>
+      <span>{EXPERIMENTAL_NOTE}</span>
     </p>
+  );
+}
+
+/** Detalles metodológicos opcionales, cerrados de inicio. */
+export function AboutEstimates() {
+  return (
+    <details className="group text-[13px]">
+      <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-sm font-medium text-foreground/80 hover:text-foreground [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          aria-hidden="true"
+          className="size-4 transition-transform group-open:rotate-90"
+        />
+        Acerca de las estimaciones
+      </summary>
+      <ul className="mt-2 list-disc space-y-1 pl-9 text-muted-foreground">
+        {ESTIMATES_ABOUT_NOTES.map((note) => (
+          <li key={note}>{note}</li>
+        ))}
+      </ul>
+    </details>
   );
 }

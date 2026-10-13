@@ -42,10 +42,7 @@ export function RiskFactorsSection({ reservationId, risk, catalog }: Props) {
   }));
 
   return (
-    <SectionCard
-      title={TITLE}
-      description="Selecciona un modelo y pulsa Ver factores para consultar su explicación SHAP."
-    >
+    <SectionCard title={TITLE} description="Selecciona un modelo y pulsa Ver factores.">
       <RiskFactorsPanel reservationId={reservationId} modelOptions={options} />
     </SectionCard>
   );

@@ -7,8 +7,6 @@ import { ApiErrorNotice } from '@/components/shared/ApiErrorNotice';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { RefreshButton } from '@/components/shared/RefreshButton';
 import { Button } from '@/components/ui/button';
-import { RiskFootnote } from '@/features/reservation-risk/components/RiskFootnote';
-import { EXPERIMENTAL_BAND_NOTE } from '@/features/reservation-risk/model/availability';
 import { listReservations } from '@/features/reservations/api/reservations.server';
 import {
   describeListScope,
@@ -165,7 +163,7 @@ export async function ReservationsResults({ query, listHref }: ResultsProps) {
             </div>
           </>
         )}
-        <div className="space-y-2.5 border-t px-5 py-3">
+        <div className="border-t px-5 py-3">
           <CursorPagination
             pageNumber={pageNumber(query)}
             previousHref={previousPageHref(query)}
@@ -174,11 +172,6 @@ export async function ReservationsResults({ query, listHref }: ResultsProps) {
             rowCount={rows.length}
             pageSize={list.pagination.limit}
           />
-          {(rows.some((row) => row.scores.length > 0) ||
-            query.experimentalRiskLevel ||
-            query.sort !== 'appointmentAt') && (
-            <RiskFootnote plural detail={EXPERIMENTAL_BAND_NOTE} />
-          )}
         </div>
       </div>
     </div>
