@@ -87,7 +87,7 @@ describe('Solicitud explícita de predicción (HU-02)', () => {
       }),
     );
     await user.click(renderPanel());
-    expect(await screen.findByText('Predicción no disponible')).toBeVisible();
+    expect(await screen.findByText('Estimación no disponible')).toBeVisible();
     expect(
       screen.getByText('No contamos con información suficiente para calcularla.'),
     ).toBeVisible();

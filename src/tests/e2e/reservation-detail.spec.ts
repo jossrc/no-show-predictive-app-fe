@@ -26,29 +26,23 @@ test('detalle con estimaciones RF y XGBoost, factores en tabla e historial', asy
   await expect(risk.getByRole('heading', { name: 'Random Forest' })).toBeVisible();
   await expect(risk.getByText('31.00 %')).toBeVisible();
   await expect(risk.getByText('27.40 %')).toBeVisible();
-  await expect(risk.getByText(/no indica confianza/)).toBeVisible();
-  await expect(
-    risk.getByText(/No validadas ni aprobadas para decisiones operativas/),
-  ).toBeVisible();
+  await expect(risk.getByText('Banda relativa: Medio')).toBeVisible();
+  await expect(risk.getByText('Banda relativa: Bajo')).toBeVisible();
   expect(actions).toHaveLength(0); // sin factores ni POST automáticos
 
   const factors = region(page, FACTORS);
   await factors.getByRole('button', { name: 'Ver factores' }).click();
-  await expect(factors.getByRole('table')).toContainText('+0.0612');
-  await expect(
-    factors.getByRole('columnheader', { name: 'Contribución (probabilidad)' }),
-  ).toBeVisible();
-  await expect(factors.getByText('Dato sensible')).toBeVisible();
+  await expect(factors.getByRole('table')).toContainText('Tasa previa de inasistencia');
+  await expect(factors.getByRole('columnheader', { name: 'Factor' })).toBeVisible();
+  await expect(factors.getByRole('columnheader', { name: /Contribución/ })).toHaveCount(0);
   await expect(factors.getByRole('img')).toHaveCount(0);
   expect(actions).toHaveLength(1);
 
   await factors.getByLabel('Modelo').selectOption('xgboost_full_v1');
   expect(actions).toHaveLength(1);
   await factors.getByRole('button', { name: 'Ver factores' }).click();
-  await expect(
-    factors.getByRole('columnheader', { name: 'Contribución (log-odds)' }),
-  ).toBeVisible();
-  await expect(factors.getByText(/no equivalen a puntos porcentuales/)).toBeVisible();
+  await expect(factors.getByRole('table')).toContainText('Inasistencias previas');
+  await expect(factors.getByText('Tasa previa de inasistencia')).toHaveCount(0);
 
   const history = region(page, HISTORY);
   await expect(history.getByText('Asistencias', { exact: true })).toBeVisible();

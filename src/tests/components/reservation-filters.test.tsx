@@ -26,11 +26,11 @@ const moreFilters = () => screen.getByRole('button', { name: /Más filtros/ });
 beforeEach(() => push.mockClear());
 
 describe('Filtros de reservas (HU-03)', () => {
-  it('aplica la banda exploratoria del modelo elegido y reinicia la paginación', async () => {
+  it('aplica la banda relativa del modelo elegido y reinicia la paginación', async () => {
     const user = userEvent.setup();
     render(<ReservationFilters initial={initial} />);
     await user.click(moreFilters());
-    await user.selectOptions(screen.getByLabelText('Banda exploratoria'), 'HIGH');
+    await user.selectOptions(screen.getByLabelText('Banda relativa'), 'HIGH');
     await user.selectOptions(screen.getByLabelText('Modelo'), 'xgboost_full_v1');
     await user.selectOptions(screen.getByLabelText('Ordenar por'), 'experimentalRisk');
     await user.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
@@ -49,7 +49,7 @@ describe('Filtros de reservas (HU-03)', () => {
     for (const label of ['Desde', 'Hasta', 'Estado', 'Sede', 'Por página']) {
       expect(screen.getByLabelText(label)).toBeVisible();
     }
-    for (const label of ['Ordenar por', 'Dirección', 'Modelo', 'Banda exploratoria']) {
+    for (const label of ['Ordenar por', 'Dirección', 'Modelo', 'Banda relativa']) {
       expect(screen.getByLabelText(label)).not.toBeVisible();
     }
     expect(moreFilters()).toHaveAttribute('aria-expanded', 'false');
@@ -83,7 +83,7 @@ describe('Filtros de reservas (HU-03)', () => {
     await user.click(moreFilters());
     expect(moreFilters()).toHaveAttribute('aria-expanded', 'true');
     await user.selectOptions(screen.getByLabelText('Ordenar por'), 'probabilityNoShow');
-    expect(screen.getByText(/no es una priorización validada/)).toBeVisible();
+    expect(screen.queryByText(/priorización validada|experimental/i)).not.toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText('Dirección'), 'desc');
     await user.selectOptions(screen.getByLabelText('Modelo'), 'xgboost_full_v1');
     await user.selectOptions(screen.getByLabelText('Por página'), '50');

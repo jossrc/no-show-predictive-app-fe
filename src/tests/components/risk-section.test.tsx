@@ -21,13 +21,13 @@ function renderRisk(id: string, risk = ok(riskFixture(id)), models = catalog) {
 beforeEach(() => vi.clearAllMocks());
 
 describe('Estimación de inasistencia (HU-02)', () => {
-  it('muestra la banda exploratoria de cada modelo junto a su score, sin crear riesgo operativo', () => {
+  it('muestra la banda relativa de cada modelo junto a su score, sin crear riesgo operativo', () => {
     renderRisk(MOCK_IDS.availableBoth);
     const rf = screen.getByRole('heading', { name: 'Random Forest' }).closest('article')!;
     const xgb = screen.getByRole('heading', { name: 'XGBoost' }).closest('article')!;
-    expect(within(rf).getByText('Medio (exploratorio)')).toBeVisible();
-    expect(within(xgb).getByText('Bajo (exploratorio)')).toBeVisible();
-    expect(within(section()).getByText(/no representan riesgo absoluto validado/)).toBeVisible();
+    expect(within(rf).getByText('Banda relativa: Medio')).toBeVisible();
+    expect(within(xgb).getByText('Banda relativa: Bajo')).toBeVisible();
+    expect(within(section()).queryByText(/riesgo (bajo|medio|alto)/i)).not.toBeInTheDocument();
   });
 
   it('explica la reprogramación y conserva todos los motivos devueltos, sin calcular scores', () => {
@@ -61,16 +61,12 @@ describe('Estimación de inasistencia (HU-02)', () => {
     expect(region.getByRole('heading', { name: 'XGBoost' })).toBeVisible();
     expect(region.getByText('31.00 %')).toBeVisible();
     expect(region.getByText('27.40 %')).toBeVisible();
-    expect(region.getByText(/3.6 p. p./)).toBeVisible();
-    expect(region.getByText(/no indica confianza ni qué modelo es más preciso/)).toBeVisible();
+    expect(region.getByText('Banda relativa: Medio')).toBeVisible();
+    expect(region.getByText('Banda relativa: Bajo')).toBeVisible();
+    expect(region.queryByText(/Diferencia entre modelos|p\. p\./)).not.toBeInTheDocument();
     expect(
-      region.getByText(
-        /Estimaciones experimentales no calibradas. No validadas ni aprobadas para decisiones operativas./,
-      ),
-    ).toBeVisible();
-    expect(
-      region.getByText(/niveles de riesgo operativo todavía no está disponible/),
-    ).toBeVisible();
+      region.queryByText(/Resultados orientativos|Acerca de las estimaciones/),
+    ).not.toBeInTheDocument();
     expect(region.queryByText(/riesgo (bajo|medio|alto)/i)).not.toBeInTheDocument();
     expect(region.queryByText(/ganador|promedio/i)).not.toBeInTheDocument();
     // Todos los modelos tienen estimación: la acción no se muestra.

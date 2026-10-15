@@ -57,11 +57,10 @@ describe('Factores relacionados con la estimación (HU-05)', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(actions.loadRiskFactorsAction).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole('button', { name: 'Ver factores' }));
-    expect(
-      await screen.findByRole('columnheader', { name: 'Contribución (log-odds)' }),
-    ).toBeVisible();
-    expect(screen.getByText(/no se comparan directamente/)).toBeVisible();
-    expect(screen.getByText('Bajo (exploratorio)')).toBeVisible();
+    const table = within(await screen.findByRole('table'));
+    expect(table.getByText('Inasistencias previas')).toBeVisible();
+    expect(table.queryByText('Tasa previa de inasistencia')).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: /Contribución/ })).not.toBeInTheDocument();
   });
 
   it('no consulta factores al renderizar ni al cambiar los selectores', async () => {
@@ -72,7 +71,7 @@ describe('Factores relacionados con la estimación (HU-05)', () => {
     expect(actions.loadRiskFactorsAction).not.toHaveBeenCalled();
   });
 
-  it('RF: tabla sin gráficos, en escala de probabilidad', async () => {
+  it('RF: tabla de factores de mayor influencia, sin gráficos ni columnas técnicas', async () => {
     actions.loadRiskFactorsAction.mockResolvedValue(
       ok(factorsFixture(MOCK_IDS.availableBoth, RF.key)),
     );
@@ -81,44 +80,47 @@ describe('Factores relacionados con la estimación (HU-05)', () => {
     const table = within(await screen.findByRole('table'));
     expect(actions.loadRiskFactorsAction).toHaveBeenCalledTimes(1);
     expect(actions.loadRiskFactorsAction).toHaveBeenCalledWith(MOCK_IDS.availableBoth, RF.key, 5);
-    expect(table.getByRole('columnheader', { name: 'Contribución (probabilidad)' })).toBeVisible();
-    expect(table.getByText('+0.0612')).toBeVisible();
-    expect(table.getByText('-0.0218')).toBeVisible();
-    expect(table.getByText('0.000')).toBeVisible();
-    expect(table.getAllByText('Sin efecto apreciable').length).toBeGreaterThan(0);
-    expect(table.getByText('Dato sensible')).toBeVisible();
-    expect(screen.getByText(/escala de probabilidad \(de 0 a 1\)/)).toBeVisible();
+    expect(table.getByRole('columnheader', { name: 'Factor' })).toBeVisible();
+    expect(table.getByText('Tasa previa de inasistencia')).toBeVisible();
+    expect(table.getByText('Edad al reservar')).toBeVisible();
+    expect(table.getByText('Cita con bandera FWA')).toBeVisible();
+    expect(
+      table.queryByRole('columnheader', { name: /Contribución|Efecto/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('+0.0612')).not.toBeInTheDocument();
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
     expect(document.querySelector('svg.recharts-surface, canvas')).toBeNull();
   });
 
-  it('XGBoost: contribuciones en log-odds, nunca en puntos porcentuales', async () => {
+  it('XGBoost: factores propios del modelo, sin magnitudes ni puntos porcentuales', async () => {
     actions.loadRiskFactorsAction.mockResolvedValue(
       ok(factorsFixture(MOCK_IDS.availableBoth, XGB.key)),
     );
     renderPanel();
     await requestFactors(XGB.key);
     const table = within(await screen.findByRole('table'));
-    expect(table.getByRole('columnheader', { name: 'Contribución (log-odds)' })).toBeVisible();
-    expect(screen.getByText(/no equivalen a puntos porcentuales/)).toBeVisible();
-    for (const cell of table.getAllByRole('cell')) {
-      expect(cell.textContent).not.toMatch(/%|p\. p\./);
-    }
+    expect(table.getByText('Inasistencias previas')).toBeVisible();
+    expect(table.getByText('Sexo registrado')).toBeVisible();
+    expect(
+      table.queryByRole('columnheader', { name: /Contribución|log-odds/ }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('table').textContent).not.toMatch(/%|p\. p\./);
     expect(actions.loadRiskFactorsAction).toHaveBeenCalledWith(MOCK_IDS.availableBoth, XGB.key, 5);
   });
 
-  it('no presenta los factores como causas; las notas metodológicas son desplegables', async () => {
+  it('no presenta los factores como causas ni muestra notas metodológicas', async () => {
     actions.loadRiskFactorsAction.mockResolvedValue(
       ok(factorsFixture(MOCK_IDS.availableBoth, RF.key)),
     );
     renderPanel();
-    const user = await requestFactors();
-    expect(await screen.findByText(/no son causas demostradas de una inasistencia/)).toBeVisible();
-    expect(screen.queryByText(/causa la inasistencia|porque el cliente/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/no implica causalidad/)).not.toBeVisible();
-    await user.click(screen.getByText('Acerca de estos factores'));
-    expect(screen.getByText(/no implica causalidad/)).toBeVisible();
-    expect(screen.getByText(/se muestran por transparencia/)).toBeVisible();
+    await requestFactors();
+    expect(await screen.findByRole('table')).toBeVisible();
+    expect(screen.getByText('Tasa previa de inasistencia')).toBeVisible();
+    expect(
+      screen.queryByText(/causa la inasistencia|porque el cliente|causas demostradas/i),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Acerca de estos factores/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no implica causalidad|SHAP/i)).not.toBeInTheDocument();
   });
 
   it('explicación sin factores: bloque compacto, sin tabla vacía', async () => {

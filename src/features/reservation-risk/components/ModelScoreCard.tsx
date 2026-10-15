@@ -1,7 +1,15 @@
+import type { ExperimentalRiskLevel } from '@/features/reservation-risk/api/experimental-risk.contract';
 import type { ModelSlot } from '@/features/reservation-risk/model/risk-view';
 import { formatRelativeBand } from '@/features/reservations/model/labels';
 import { formatLimaDateTime } from '@/lib/dates/lima';
 import { formatPercentage } from '@/lib/format/percentage';
+import { cn } from '@/lib/utils';
+
+const BAND_DOT: Readonly<Record<ExperimentalRiskLevel, string>> = {
+  LOW: 'bg-success',
+  MEDIUM: 'bg-warning',
+  HIGH: 'bg-destructive',
+};
 
 /**
  * Score y banda persistidos de un modelo independiente. No se calculan umbrales en el frontend.
@@ -17,7 +25,14 @@ export function ModelScoreCard({ slot }: { slot: ModelSlot }) {
             {formatPercentage(result.percentageNoShow)}
           </p>
           {result.experimentalRisk && (
-            <p className="mt-2 text-[13px] font-medium">
+            <p className="mt-2 flex items-center gap-2 text-[13px] font-medium">
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'size-3 shrink-0 rounded-full',
+                  BAND_DOT[result.experimentalRisk.level],
+                )}
+              />
               {formatRelativeBand(result.experimentalRisk.level)}
             </p>
           )}

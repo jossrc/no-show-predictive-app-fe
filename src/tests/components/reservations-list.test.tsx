@@ -38,20 +38,21 @@ describe('Tabla de reservas (HU-01)', () => {
     const row = within(rowOf(MOCK_IDS.availableBoth));
     expect(row.getByText(`#${MOCK_IDS.availableBoth}`)).toBeVisible();
     expect(row.getByText('Sede #2')).toBeVisible();
-    expect(row.getByText('31.00 %')).toBeVisible();
-    expect(row.getByText('27.40 %')).toBeVisible();
-    expect(row.getByText('Random Forest')).toBeVisible();
-    expect(row.getByText('XGBoost')).toBeVisible();
-    expect(row.getByText('Medio (exploratorio)')).toBeVisible();
-    expect(row.getByText('Bajo (exploratorio)')).toBeVisible();
+    expect(row.getByText('Medio · Random Forest')).toBeVisible();
+    expect(row.getByText('Bajo · XGBoost')).toBeVisible();
+    expect(row.queryByText(/%/)).not.toBeInTheDocument();
     expect(row.getByText('Programada')).toBeVisible();
+    expect(row.getByText('Medio · Random Forest').className).toMatch(/font-semibold/);
+    expect(row.getByText('Bajo · XGBoost').className).not.toMatch(/font-semibold/);
   });
 
-  it('muestra un score real de 0 % y un único modelo', () => {
+  it('muestra un único modelo cuando solo hay un score, y nunca 0 % por omisión', () => {
     render(<ReservationsTable rows={rowsFor(MOCK_IDS.rfOnlyZero)} caption="Reservas" />);
     const row = within(rowOf(MOCK_IDS.rfOnlyZero));
-    expect(row.getByText('0.00 %')).toBeVisible();
+    expect(row.getByText('Random Forest')).toBeVisible();
     expect(row.queryByText('XGBoost')).not.toBeInTheDocument();
+    expect(row.queryByText('Sin estimación')).not.toBeInTheDocument();
+    expect(row.queryByText(/%/)).not.toBeInTheDocument();
   });
 
   it('sin score muestra «Sin estimación», nunca 0 % ni códigos predictivos', () => {
@@ -99,7 +100,8 @@ describe('Tabla de reservas (HU-01)', () => {
     expect(card.getByText(`Reserva #${MOCK_IDS.availableBoth}`)).toBeVisible();
     expect(card.getByText(/Sede #2/)).toBeVisible();
     expect(card.getByText('Programada')).toBeVisible();
-    expect(card.getByText('31.00 %')).toBeVisible();
+    expect(card.getByText('Medio · Random Forest')).toBeVisible();
+    expect(card.getByText('Bajo · XGBoost')).toBeVisible();
     expect(screen.getByText('Sin estimación')).toBeVisible();
   });
 });

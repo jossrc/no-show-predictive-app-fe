@@ -7,6 +7,10 @@ import { SectionCard } from '@/components/shared/SectionCard';
 import type { ModelCatalog } from '@/features/prediction-models/api/contract';
 import { isKnownModelKey } from '@/features/prediction-models/model/model-identity';
 import type { RiskAssessment } from '@/features/reservation-risk/api/risk.contract';
+import {
+  type BandThresholdRow,
+  BandThresholdsInfo,
+} from '@/features/reservation-risk/components/BandThresholdsInfo';
 import { ModelScoreCard } from '@/features/reservation-risk/components/ModelScoreCard';
 import { RequestPredictionPanel } from '@/features/reservation-risk/components/RequestPredictionPanel';
 import { AVAILABILITY_MESSAGES } from '@/features/reservation-risk/model/availability';
@@ -17,6 +21,7 @@ import {
   predictionRequestAvailability,
 } from '@/features/reservation-risk/model/risk-view';
 import type { ApiResult } from '@/lib/api/result';
+import { formatPercentage } from '@/lib/format/percentage';
 
 interface RiskSectionProps {
   reservationId: string;
@@ -64,6 +69,20 @@ function EstimateState({
   );
 }
 
+function bandThresholdRows(slots: ModelSlot[]): BandThresholdRow[] {
+  return slots.flatMap((slot) => {
+    const band = slot.result?.experimentalRisk;
+    if (!band) return [];
+    return [
+      {
+        label: slot.identity.label,
+        lowUpper: formatPercentage(band.lowUpperThreshold * 100),
+        highLower: formatPercentage(band.highLowerThreshold * 100),
+      },
+    ];
+  });
+}
+
 function Estimates({ slots }: { slots: ModelSlot[] }) {
   return (
     <div className="grid divide-y overflow-hidden rounded-lg border bg-surface-subtle sm:grid-cols-2 sm:divide-x sm:divide-y-0">
@@ -94,7 +113,11 @@ export function RiskSection({ reservationId, risk, catalog }: RiskSectionProps) 
   const slots = buildModelSlots(assessment, catalog.ok ? catalog.data : null);
 
   return (
-    <SectionCard title={TITLE} actions={diagnostics}>
+    <SectionCard
+      title={TITLE}
+      meta={<BandThresholdsInfo models={bandThresholdRows(slots)} />}
+      actions={diagnostics}
+    >
       <div className="space-y-4">
         {assessment.status === 'AVAILABLE_EXPLORATORY' ? (
           <Estimates slots={slots} />

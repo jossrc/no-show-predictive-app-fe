@@ -43,7 +43,7 @@ describe('Parámetros del listado en la URL (HU-03)', () => {
   it('quita una banda experimental inválida sin inventar otra', () => {
     const { query, notices } = parse({ experimentalRiskLevel: 'EXTREME' });
     expect(query.experimentalRiskLevel).toBeNull();
-    expect(notices).toEqual(['La banda exploratoria indicada no era válida; se quitó ese filtro.']);
+    expect(notices).toEqual(['La banda relativa indicada no era válida; se quitó ese filtro.']);
   });
 
   it('usa un rango predeterminado de 14 días desde hoy en Lima', () => {
