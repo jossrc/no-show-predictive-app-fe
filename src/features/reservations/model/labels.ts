@@ -1,6 +1,7 @@
 import type { ExperimentalRiskLevel } from '@/features/reservation-risk/api/experimental-risk.contract';
 import type { ReservationStatus } from '@/features/reservations/api/contract';
 import type { ListableStatus, SortField } from '@/features/reservations/model/list-query';
+import { formatLimaDateTime } from '@/lib/dates/lima';
 
 export const RESERVATION_STATUS_LABELS: Readonly<Record<ReservationStatus, string>> = {
   SCHEDULED: 'Programada',
@@ -52,4 +53,19 @@ export function formatClinicLabel(clinicId: number | string): string {
 
 export function formatClientLabel(clientId: string): string {
   return `Cliente #${clientId}`;
+}
+
+/** «Reserva #… · 12 nov. 2026 · 3:00 p. m. · Sede #2» para confirmar acciones sobre una cita. */
+export function formatAppointmentContext(
+  reservationId: string,
+  appointment: { appointmentAt: string; clinicId: number } | null,
+): string {
+  const parts = [formatReservationLabel(reservationId)];
+  if (appointment) {
+    parts.push(
+      formatLimaDateTime(appointment.appointmentAt),
+      formatClinicLabel(appointment.clinicId),
+    );
+  }
+  return parts.join(' · ');
 }

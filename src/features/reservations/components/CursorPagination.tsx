@@ -11,10 +11,20 @@ interface CursorPaginationProps {
   firstHref: string;
   rowCount: number;
   pageSize: number;
+  /** Nombre accesible de la navegación (varias paginaciones pueden convivir en una página). */
+  label?: string;
+  /** Sustantivo de los elementos [singular, plural]. */
+  noun?: readonly [string, string];
 }
 
-export function describePageCount(pageNumber: number, rowCount: number): string {
-  const rows = `${rowCount} ${rowCount === 1 ? 'reserva' : 'reservas'} en esta página`;
+const RESERVATION_NOUN = ['reserva', 'reservas'] as const;
+
+export function describePageCount(
+  pageNumber: number,
+  rowCount: number,
+  noun: readonly [string, string] = RESERVATION_NOUN,
+): string {
+  const rows = `${rowCount} ${rowCount === 1 ? noun[0] : noun[1]} en esta página`;
   return pageNumber > 1 ? `Página ${pageNumber} · ${rows}` : rows;
 }
 
@@ -24,14 +34,17 @@ export function describePageCount(pageNumber: number, rowCount: number): string 
  */
 export function CursorPagination(props: CursorPaginationProps) {
   const { pageNumber, previousHref, nextHref, firstHref, rowCount, pageSize } = props;
+  const { label = 'Paginación de reservas', noun = RESERVATION_NOUN } = props;
   return (
     <nav
-      aria-label="Paginación de reservas"
+      aria-label={label}
       className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="text-[13px] text-muted-foreground tabular-nums">
-        <p>{describePageCount(pageNumber, rowCount)}</p>
-        <p className="text-xs">Hasta {pageSize} reservas por página</p>
+        <p>{describePageCount(pageNumber, rowCount, noun)}</p>
+        <p className="text-xs">
+          Hasta {pageSize} {noun[1]} por página
+        </p>
       </div>
       <div className="flex items-center gap-2">
         {pageNumber > 2 && (

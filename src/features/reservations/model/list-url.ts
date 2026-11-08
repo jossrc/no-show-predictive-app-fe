@@ -4,9 +4,12 @@ import {
   type ReservationListFilters,
   type ReservationListQuery,
 } from '@/features/reservations/model/list-query';
+import { OPERATIONAL_PATH, RESERVATIONS_PATH } from '@/lib/routes';
 
-export const RESERVATIONS_PATH = '/reservations';
+export { RESERVATIONS_PATH };
 const TRAIL_SEPARATOR = '.';
+/** Pantallas desde las que se abre el detalle y a las que se puede regresar. */
+const BACK_PATHS: readonly string[] = [RESERVATIONS_PATH, OPERATIONAL_PATH];
 
 /**
  * Parámetros enviados a Fastify. Se construyen campo a campo desde una lista blanca:
@@ -85,14 +88,24 @@ export function buildDetailHref(reservationId: string, listHref: string): string
   return `${RESERVATIONS_PATH}/${encodeURIComponent(reservationId)}?${params.toString()}`;
 }
 
-/** Acepta solo rutas internas del listado (evita redirecciones abiertas). */
+/**
+ * Acepta solo rutas internas del listado o de «Optimización operativa» (evita redirecciones
+ * abiertas). Cualquier otro valor regresa al listado de reservas.
+ */
 export function resolveBackHref(raw: string | string[] | undefined): string {
   const value = Array.isArray(raw) ? raw[0] : raw;
-  if (!value || !value.startsWith(`${RESERVATIONS_PATH}?`)) return RESERVATIONS_PATH;
+  const allowed = BACK_PATHS.some((path) => value?.startsWith(`${path}?`));
+  if (!value || !allowed) return RESERVATIONS_PATH;
   try {
     const url = new URL(value, 'http://local.invalid');
-    return url.pathname === RESERVATIONS_PATH ? `${url.pathname}${url.search}` : RESERVATIONS_PATH;
+    return BACK_PATHS.includes(url.pathname) ? `${url.pathname}${url.search}` : RESERVATIONS_PATH;
   } catch {
     return RESERVATIONS_PATH;
   }
+}
+
+export function backLinkLabel(backHref: string): string {
+  return backHref.startsWith(OPERATIONAL_PATH)
+    ? 'Volver a optimización operativa'
+    : 'Volver a reservas';
 }

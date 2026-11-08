@@ -4,13 +4,15 @@ import {
   type MockReservation,
   type MockScore,
   RF,
+  scoreRunId,
+  scoreScoredAt,
   toReasons,
   XGB,
 } from '@/tests/mocks/fastify/fixtures/reservations';
 
 /** Fixtures SINTÉTICAS de HU-02 y HU-05 (solo pruebas). */
 
-function modelResult(score: MockScore, now: Date) {
+function modelResult(reservationId: string, score: MockScore, now: Date) {
   const algorithm = score.model.key === RF.key ? 'random_forest' : 'xgboost';
   return {
     modelKey: score.model.key,
@@ -31,8 +33,8 @@ function modelResult(score: MockScore, now: Date) {
       ? null
       : 'SCORED_WITHOUT_RESEARCH_POLICY',
     predictionAt: new Date(now.getTime() - 20 * 86_400_000).toISOString(),
-    scoredAt: new Date(now.getTime() - 86_400_000).toISOString(),
-    predictionRunId: `run-${score.model.hash}`,
+    scoredAt: scoreScoredAt(score, now),
+    predictionRunId: scoreRunId(reservationId, score),
   };
 }
 
@@ -76,7 +78,7 @@ export function riskAssessment(reservation: MockReservation, scores: MockScore[]
           snapshotHash: 'synthetic-snapshot-hash',
         }
       : null,
-    models: scores.map((score) => modelResult(score, now)),
+    models: scores.map((score) => modelResult(reservation.id, score, now)),
     comparison: comparison(scores),
     riskLevel: null,
     riskPolicyStatus: 'pending_validation',

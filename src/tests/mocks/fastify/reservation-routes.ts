@@ -2,6 +2,7 @@ import {
   MOCK_IDS,
   MOCK_RESERVATIONS,
   type MockReservation,
+  mockRunId,
   type MockScore,
   RF,
   toReasons,
@@ -9,24 +10,23 @@ import {
 } from '@/tests/mocks/fastify/fixtures/reservations';
 import { riskAssessment, riskFactors } from '@/tests/mocks/fastify/fixtures/risk';
 import { clientHistory, reservationDetail } from '@/tests/mocks/fastify/fixtures/support';
+import {
+  handleOperationalReservationRoute,
+  operationalStatusFor,
+} from '@/tests/mocks/fastify/operational-routes';
+import { currentScores, savePredictions } from '@/tests/mocks/fastify/prediction-store';
 import { mockData, mockError, type MockResponse } from '@/tests/mocks/fastify/responses';
 
 /**
- * Rutas por reserva del backend simulado. Las predicciones creadas por POST se guardan en
- * memoria del proceso de prueba (globalThis) y nunca en una base de datos.
+ * Rutas por reserva del backend simulado (Sprint 01). Las rutas operativas de Sprint 02 se
+ * resuelven en `operational-routes.ts`; ningún estado sale de la memoria del proceso de prueba.
  */
-const store = globalThis as typeof globalThis & { __mockPredictions?: Map<string, MockScore[]> };
-const predictions = (store.__mockPredictions ??= new Map<string, MockScore[]>());
 
 const NOT_SCORABLE_IDS = new Set<string>([
   MOCK_IDS.notScorable,
   MOCK_IDS.stale,
   MOCK_IDS.cancelled,
 ]);
-
-function currentScores(reservation: MockReservation): MockScore[] {
-  return predictions.get(reservation.id) ?? reservation.scores;
-}
 
 function notFound(): MockResponse {
   return mockError(404, 'RESERVATION_NOT_FOUND', 'Reserva no encontrada');
@@ -41,22 +41,23 @@ function parseBody(raw: string | null): { mode?: unknown; modelKey?: unknown } |
   }
 }
 
-function requestedScores(body: { mode?: unknown; modelKey?: unknown }): MockScore[] | null {
-  if (body.mode === 'compare' && body.modelKey === undefined) {
-    return [
-      { model: RF, probability: 0.42 },
-      { model: XGB, probability: 0.391 },
-    ];
-  }
-  if (body.mode === 'single' && body.modelKey === RF.key) return [{ model: RF, probability: 0.42 }];
-  if (body.mode === 'single' && body.modelKey === XGB.key)
-    return [{ model: XGB, probability: 0.391 }];
+function requestedScores(
+  reservationId: string,
+  body: { mode?: unknown; modelKey?: unknown },
+): MockScore[] | null {
+  // UUID sintético válido: el run puede asociarse luego a HU-07 (que exige UUID).
+  const runId = mockRunId(reservationId, 9);
+  const rf = { model: RF, probability: 0.42, runId, scoredDayOffset: 0 };
+  const xgb = { model: XGB, probability: 0.391, runId, scoredDayOffset: 0 };
+  if (body.mode === 'compare' && body.modelKey === undefined) return [rf, xgb];
+  if (body.mode === 'single' && body.modelKey === RF.key) return [rf];
+  if (body.mode === 'single' && body.modelKey === XGB.key) return [xgb];
   return null;
 }
 
 function predict(reservation: MockReservation, rawBody: string | null, now: Date): MockResponse {
   const body = parseBody(rawBody);
-  const requested = body ? requestedScores(body) : null;
+  const requested = body ? requestedScores(reservation.id, body) : null;
   if (!body || !requested)
     return mockError(400, 'REQUEST_VALIDATION_ERROR', 'La solicitud no pudo ser procesada');
   if (NOT_SCORABLE_IDS.has(reservation.id)) {
@@ -75,9 +76,9 @@ function predict(reservation: MockReservation, rawBody: string | null, now: Date
   const existing = currentScores(reservation);
   const replayed = existing.length > 0;
   const scores = replayed ? existing : requested;
-  if (!replayed) predictions.set(reservation.id, scores);
+  if (!replayed) savePredictions(reservation.id, scores);
   const run = {
-    predictionRunId: replayed ? null : `run-mock-${reservation.id}`,
+    predictionRunId: replayed ? null : (scores[0]?.runId ?? null),
     replayed,
     requestedModelKeys: requested.map((score) => score.model.key),
     snapshotCreated: !replayed,
@@ -129,16 +130,20 @@ export function handleReservationRoute(
   rawBody: string | null,
   now: Date,
 ): MockResponse {
-  const match =
-    /^\/api\/v1\/reservations\/(\d+)(\/risk|\/risk\/factors|\/predictions|\/client-history)?$/.exec(
-      url.pathname,
-    );
+  const match = /^\/api\/v1\/reservations\/(\d+)(\/[a-z/-]+)?$/.exec(url.pathname);
   const reservation = MOCK_RESERVATIONS.find((item) => item.id === match?.[1]);
   if (!match || !reservation) return notFound();
 
-  const route = `${method} ${match[2] ?? ''}`;
-  if (route === 'GET ')
-    return mockData(reservationDetail(reservation, currentScores(reservation), now));
+  const suffix = match[2] ?? '';
+  const operational = handleOperationalReservationRoute(method, suffix, reservation, rawBody, now);
+  if (operational) return operational;
+
+  const route = `${method} ${suffix}`;
+  if (route === 'GET ') {
+    const scores = currentScores(reservation);
+    const status = operationalStatusFor(reservation, now);
+    return mockData(reservationDetail(reservation, scores, now, status));
+  }
   if (route === 'GET /risk') {
     if (reservation.id === MOCK_IDS.partialErrors) {
       return mockError(503, 'PERSISTENCE_UNAVAILABLE', 'Servicio temporalmente no disponible');

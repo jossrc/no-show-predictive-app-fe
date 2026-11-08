@@ -16,7 +16,7 @@ export function listNotices(list: ReservationList, dataMode: string): NoticeItem
     notices.push({
       key: 'estimates-error',
       tone: 'warning',
-      text: 'Las reservas están disponibles, pero no podemos consultar sus estimaciones en este momento.',
+      text: 'Las reservas están disponibles, pero no podemos consultar sus estimaciones ni su gestión operativa en este momento.',
     });
   } else if (withoutScores) {
     notices.push({

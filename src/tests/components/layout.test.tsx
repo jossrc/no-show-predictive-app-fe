@@ -8,7 +8,7 @@ import { ThemeProvider } from '@/providers/ThemeProvider';
 vi.mock('next/navigation', () => ({ usePathname: () => '/reservations/900000000001001' }));
 
 describe('Layout general', () => {
-  it('navegación compacta enfocada en reservas, con ruta activa en el detalle', () => {
+  it('navegación compacta (reservas y optimización operativa), con ruta activa en el detalle', () => {
     render(
       <ThemeProvider>
         <AppShell>
@@ -18,9 +18,12 @@ describe('Layout general', () => {
     );
     const navigation = screen.getByRole('navigation', { name: 'Navegación principal' });
     const links = within(navigation).getAllByRole('link');
-    expect(links).toHaveLength(1);
+    expect(links).toHaveLength(2);
     expect(links[0]).toHaveTextContent('Reservas');
     expect(links[0]).toHaveAttribute('aria-current', 'page');
+    expect(links[1]).toHaveAccessibleName('Optimización operativa');
+    expect(links[1]).toHaveAttribute('href', '/operational-optimization');
+    expect(links[1]).not.toHaveAttribute('aria-current');
     for (const removed of ['Reportes', 'Configuración', 'Modelos', 'Inicio']) {
       expect(screen.queryByRole('link', { name: removed })).not.toBeInTheDocument();
     }

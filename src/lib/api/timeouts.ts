@@ -8,4 +8,6 @@ export const API_TIMEOUTS = {
   modelCatalog: 15_000,
   explanation: 25_000,
   prediction: 30_000,
+  /** POST operativos (HU-06/07/08): solo insertan en el almacén de la app, sin llamar a ML. */
+  operationalWrite: 15_000,
 } as const;

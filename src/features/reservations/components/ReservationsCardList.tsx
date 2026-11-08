@@ -1,3 +1,4 @@
+import { OverbookingMarkBadge } from '@/features/operational-optimization/components/OverbookingMarkBadge';
 import { ScoreList } from '@/features/reservation-risk/components/ScoreList';
 import { DetailLink } from '@/features/reservations/components/ReservationsTable';
 import { ReservationStatusBadge } from '@/features/reservations/components/ReservationStatusBadge';
@@ -32,6 +33,7 @@ export function ReservationsCardList({ rows }: { rows: ReservationRowView[] }) {
             <span className="text-[13px] break-all text-muted-foreground">
               {row.clinicLabel} · {formatClientLabel(row.clientId)}
             </span>
+            <OverbookingMarkBadge summary={row.overbooking} onlyWhenEnabled />
           </div>
           <div className="mt-auto flex items-end justify-between gap-3 pt-1">
             <div className="min-w-0">

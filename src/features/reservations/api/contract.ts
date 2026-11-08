@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { operationalStatusFields } from '@/features/operational-optimization/api/summary.contract';
 import {
   classificationAvailabilityFields,
   experimentalRiskPolicySchema,
@@ -22,6 +23,9 @@ import {
  * HU-01/HU-03: `GET /api/v1/reservations` y `GET /api/v1/reservations/:reservationId`.
  * Fuente: ReservationHttpSchemas.ts, RiskHttpSchemas.ts (ListItemSchema),
  * ListReservationRisksSchema.ts y GetReservationSchema.ts.
+ *
+ * Sprint 02 agrega de forma ADITIVA `overbooking`, `attendanceOutcome` y `spaceRecoveryOutcome`
+ * (OperationalStatusHttp.ts) a cada fila y al detalle; el resto del contrato no cambia.
  */
 
 export const reservationStatusSchema = z.enum(['SCHEDULED', 'CANCELLED', 'PAST']);
@@ -42,6 +46,7 @@ const reservationBaseSchema = z.object({
   hasRescheduleEvent: z.boolean(),
   classificationCutoffAt: nullableIsoDateTimeSchema,
   sourceFreshness: sourceFreshnessSchema,
+  ...operationalStatusFields,
 });
 
 export const reservationDetailSchema = reservationBaseSchema.extend({
