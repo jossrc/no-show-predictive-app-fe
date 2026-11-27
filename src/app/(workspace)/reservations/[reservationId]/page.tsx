@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 
 import { getClientHistory } from '@/features/client-history/api/history.server';
 import { ClientHistorySection } from '@/features/client-history/components/ClientHistorySection';
+import { OperationalDetailSection } from '@/features/operational-optimization/components/OperationalDetailSection';
+import { OperationalSectionSkeleton } from '@/features/operational-optimization/components/OperationalSkeletons';
 import { getModelCatalog } from '@/features/prediction-models/api/models.server';
 import { getReservationRisk } from '@/features/reservation-risk/api/risk.server';
 import { RiskFactorsSection } from '@/features/reservation-risk/components/RiskFactorsSection';
@@ -10,7 +13,10 @@ import { RiskSection } from '@/features/reservation-risk/components/RiskSection'
 import { getReservation } from '@/features/reservations/api/reservations.server';
 import { ReservationDetailHeader } from '@/features/reservations/components/ReservationDetailHeader';
 import { ReservationFacts } from '@/features/reservations/components/ReservationFacts';
-import { formatReservationLabel } from '@/features/reservations/model/labels';
+import {
+  formatAppointmentContext,
+  formatReservationLabel,
+} from '@/features/reservations/model/labels';
 import { resolveBackHref } from '@/features/reservations/model/list-url';
 import { hasErrorCode } from '@/lib/api/result';
 import { isDecimalId } from '@/lib/api/schemas';
@@ -52,6 +58,13 @@ export default async function ReservationDetailPage({ params, searchParams }: Pa
         <div className="min-w-0 space-y-5">
           <ReservationFacts detail={detail} />
           <RiskSection reservationId={reservationId} risk={risk} catalog={catalog} />
+          <Suspense fallback={<OperationalSectionSkeleton />}>
+            <OperationalDetailSection
+              reservationId={reservationId}
+              context={formatAppointmentContext(reservationId, detail.ok ? detail.data : null)}
+              risk={risk}
+            />
+          </Suspense>
           <RiskFactorsSection reservationId={reservationId} risk={risk} catalog={catalog} />
         </div>
         <div className="min-w-0">

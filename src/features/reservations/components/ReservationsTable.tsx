@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { OverbookingMarkBadge } from '@/features/operational-optimization/components/OverbookingMarkBadge';
 import { ScoreList } from '@/features/reservation-risk/components/ScoreList';
 import { ReservationStatusBadge } from '@/features/reservations/components/ReservationStatusBadge';
 import { formatReservationLabel } from '@/features/reservations/model/labels';
@@ -69,11 +70,14 @@ export function ReservationsTable({
             </TableCell>
             <TableCell className="text-muted-foreground">{row.clinicLabel}</TableCell>
             <TableCell>
-              <ReservationStatusBadge
-                status={row.status}
-                stale={row.stale}
-                rescheduled={row.rescheduled}
-              />
+              <div className="flex flex-col items-start gap-1.5">
+                <ReservationStatusBadge
+                  status={row.status}
+                  stale={row.stale}
+                  rescheduled={row.rescheduled}
+                />
+                <OverbookingMarkBadge summary={row.overbooking} onlyWhenEnabled />
+              </div>
             </TableCell>
             <TableCell>
               <ScoreList scores={row.scores} />

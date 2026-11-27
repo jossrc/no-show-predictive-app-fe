@@ -47,7 +47,7 @@ test('carga el listado con estimaciones, sin niveles de riesgo, jerga técnica n
   await expect(page.getByText(/riesgo (bajo|medio|alto)/i)).toHaveCount(0);
   await expect(
     page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link'),
-  ).toHaveCount(1);
+  ).toHaveCount(2);
   // APP_ENV=production: sin herramientas técnicas ni referencias académicas.
   await expect(page.getByRole('button', { name: /Diagnóstico/ })).toHaveCount(0);
   expect(await page.locator('body').innerText()).not.toMatch(TECHNICAL_JARGON);

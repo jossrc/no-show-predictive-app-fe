@@ -1,40 +1,30 @@
-import type { ExperimentalRiskLevel } from '@/features/reservation-risk/api/experimental-risk.contract';
+import type { OperationalStatus } from '@/features/operational-optimization/api/summary.contract';
 import type { ReservationListItem } from '@/features/reservations/api/contract';
-import { addCalendarDays, todayInLima } from '@/lib/dates/calendar';
+import {
+  appointmentAt,
+  limaInstant,
+  MOCK_IDS,
+  type MockReservation,
+  type MockScore,
+  RF,
+  scoreRunId,
+  scoreScoredAt,
+  XGB,
+} from '@/tests/mocks/fastify/fixtures/base';
+import {
+  seedOperationalStatus,
+  sprint02Reservations,
+} from '@/tests/mocks/fastify/fixtures/sprint02';
 
 /**
  * Fixtures SINTÉTICAS de prueba, coherentes con el contrato de Fastify. Los identificadores
  * usan el rango sintético 9000… del backend; no corresponden a clientes ni reservas reales.
  * Las fechas son relativas a «hoy» en Lima para caer en el rango predeterminado del listado.
  */
-export const MOCK_IDS = {
-  availableBoth: '900000000001001',
-  notScorable: '900000000001002',
-  notScored: '900000000001003',
-  rfOnlyZero: '900000000001004',
-  stale: '900000000001005',
-  cancelled: '900000000001006',
-  xgbOnly: '900000000001007',
-  partialErrors: '900000000001009',
-} as const;
-
-/** Clínicas con comportamiento especial en el listado mock. */
-export const MOCK_CLINICS = { unknown: '999', unavailable: '503', unauthorized: '401' } as const;
+export * from '@/tests/mocks/fastify/fixtures/base';
+export { seedInstants, seedOperationalStatus } from '@/tests/mocks/fastify/fixtures/sprint02';
 
 const CUTOFF = '2026-10-08T01:58:00.000Z';
-export const RF = { key: 'random_forest_full_v1', hash: '4e3c86a17005' } as const;
-export const XGB = { key: 'xgboost_full_v1', hash: '376d3db9d4d3' } as const;
-
-function limaInstant(dayOffset: number, time: string, now: Date): string {
-  const day = addCalendarDays(todayInLima(now), dayOffset);
-  return new Date(`${day}T${time}:00-05:00`).toISOString();
-}
-
-export interface MockScore {
-  model: typeof RF | typeof XGB;
-  probability: number;
-  experimentalLevel?: ExperimentalRiskLevel;
-}
 
 /** Política y bandas SINTÉTICAS explícitas para probar v2; nunca clasifican datos reales. */
 export function mockExperimentalRisk(score: MockScore) {
@@ -61,20 +51,6 @@ export function mockExperimentalRisk(score: MockScore) {
     approvedBy: null,
     operationalUseAllowed: false as const,
   };
-}
-
-export interface MockReservation {
-  id: string;
-  clientId: string;
-  clinicId: number;
-  dayOffset: number;
-  time: string;
-  status: 'SCHEDULED' | 'CANCELLED';
-  availability: 'AVAILABLE_EXPLORATORY' | 'NOT_SCORED' | 'NOT_SCORABLE';
-  reasons: string[];
-  scores: MockScore[];
-  stale?: boolean;
-  rescheduled?: boolean;
 }
 
 export const MOCK_RESERVATIONS: readonly MockReservation[] = [
@@ -171,6 +147,7 @@ export const MOCK_RESERVATIONS: readonly MockReservation[] = [
     reasons: [],
     scores: [],
   },
+  ...sprint02Reservations(),
 ];
 
 export const REASON_MESSAGES: Readonly<Record<string, string>> = {
@@ -187,23 +164,25 @@ export function toReasons(codes: readonly string[]) {
   return codes.map((code) => ({ code, message: REASON_MESSAGES[code] ?? code }));
 }
 
-export function appointmentAt(reservation: MockReservation, now: Date): string {
-  return limaInstant(reservation.dayOffset, reservation.time, now);
-}
-
-export function toScoreSummary(score: MockScore, now: Date) {
+export function toScoreSummary(reservationId: string, score: MockScore, now: Date) {
   return {
     modelKey: score.model.key,
     modelVersion: `${score.model.key}:${score.model.hash}`,
     modelHash: score.model.hash,
     probabilityNoShow: score.probability,
     percentageNoShow: score.probability * 100,
-    scoredAt: limaInstant(-1, '09:00', now),
-    predictionRunId: `run-${score.model.hash}`,
+    scoredAt: scoreScoredAt(score, now),
+    predictionRunId: scoreRunId(reservationId, score),
     riskLevel: null,
     experimentalRisk: mockExperimentalRisk(score),
   };
 }
+
+const SOURCE_CLASSIFICATIONS = {
+  SCHEDULED: 'FUTURE_PENDING',
+  CANCELLED: 'FUTURE_CANCELLED',
+  PAST: 'PAST_RESOLVED',
+} as const;
 
 export function toReservationBody(reservation: MockReservation, now: Date) {
   return {
@@ -213,8 +192,7 @@ export function toReservationBody(reservation: MockReservation, now: Date) {
     appointmentAt: appointmentAt(reservation, now),
     bookingCreatedAt: limaInstant(-20, '16:00', now),
     reservationStatus: reservation.status,
-    sourceClassification:
-      reservation.status === 'CANCELLED' ? 'FUTURE_CANCELLED' : 'FUTURE_PENDING',
+    sourceClassification: SOURCE_CLASSIFICATIONS[reservation.status],
     hasRescheduleEvent: reservation.rescheduled ?? false,
     classificationCutoffAt: CUTOFF,
     sourceFreshness: reservation.stale ? 'STALE_CLASSIFICATION' : 'CURRENT',
@@ -225,11 +203,13 @@ export function toListItem(
   reservation: MockReservation,
   now: Date,
   modelKey: string = RF.key,
+  operational: OperationalStatus = seedOperationalStatus(reservation, now),
 ): ReservationListItem {
   const selectedScore = reservation.scores.find((score) => score.model.key === modelKey);
   const experimentalRisk = selectedScore ? mockExperimentalRisk(selectedScore) : null;
   return {
     ...toReservationBody(reservation, now),
+    ...operational,
     risk: {
       predictionAvailability: reservation.availability,
       notScorableReasons: toReasons(reservation.reasons),
@@ -241,7 +221,7 @@ export function toListItem(
       experimentalRisk,
       experimentalPolicyCurrent: experimentalRisk !== null,
       validationStatus: 'EXPLORATORY_NOT_VALIDATED',
-      probabilities: reservation.scores.map((score) => toScoreSummary(score, now)),
+      probabilities: reservation.scores.map((score) => toScoreSummary(reservation.id, score, now)),
     },
   };
 }

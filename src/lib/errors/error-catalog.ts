@@ -138,6 +138,58 @@ const CATALOG: Readonly<Record<string, ErrorPresentation>> = {
     description: 'El servicio tardó demasiado en responder. No podemos confirmar el resultado.',
     retryable: true,
   },
+  // Gestión operativa (HU-06/07/08): conflictos de negocio esperados tras un cambio de estado.
+  OVERBOOKING_NOT_ELIGIBLE: {
+    title: 'La información del horario cambió',
+    description:
+      'El horario ya no cumple las condiciones para habilitarse. Revisa el estado actualizado.',
+    retryable: false,
+  },
+  OVERBOOKING_ALREADY_ENABLED_CONFLICT: {
+    title: 'El horario ya estaba habilitado',
+    description: 'Se habilitó antes con otra estimación; se muestra la marca registrada.',
+    retryable: false,
+  },
+  PREDICTION_RESERVATION_MISMATCH: {
+    title: 'La información de la estimación cambió',
+    description: 'Los datos de la vista estaban desactualizados. Revisa el estado actualizado.',
+    retryable: false,
+  },
+  ATTENDANCE_ALREADY_RECORDED_CONFLICT: {
+    title: 'La asistencia ya estaba registrada',
+    description: 'Se muestra el resultado guardado; no se modificó.',
+    retryable: false,
+  },
+  APPOINTMENT_NOT_FINISHED: {
+    title: 'La cita aún no ha terminado',
+    description: 'Podrás registrar el resultado cuando la agenda acredite que la cita terminó.',
+    retryable: false,
+  },
+  RESERVATION_CANCELLED: {
+    title: 'Reserva cancelada',
+    description: 'Una cancelación no es una inasistencia; no se registró ningún resultado.',
+    retryable: false,
+  },
+  PREDICTION_REQUIRED: {
+    title: 'Primero se necesita una estimación',
+    description: 'Esta cita no tiene una estimación registrada con la cual comparar el resultado.',
+    retryable: false,
+  },
+  PREDICTION_AFTER_APPOINTMENT: {
+    title: 'La estimación no permite la comparación',
+    description: 'La estimación elegida se registró después del inicio de la cita.',
+    retryable: false,
+  },
+  PREVENTIVE_ACTION_REQUIRED: {
+    title: 'El horario no está habilitado',
+    description: 'Primero debe habilitarse el horario para sobreasignación.',
+    retryable: false,
+  },
+  SPACE_RECOVERY_ALREADY_RECORDED_CONFLICT: {
+    title: 'El resultado ya estaba registrado',
+    description: 'Se muestra el resultado guardado; no se modificó.',
+    retryable: false,
+  },
   NETWORK_ERROR: SERVICE_DOWN,
   TIMEOUT: {
     title: 'El servicio tardó demasiado',

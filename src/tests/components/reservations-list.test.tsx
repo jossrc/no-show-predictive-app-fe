@@ -123,7 +123,7 @@ describe('Avisos del listado', () => {
   it('un error predictivo general reemplaza la nota de «sin estimaciones» (sin duplicar)', () => {
     const list = listFixture([MOCK_IDS.notScorable], { predictiveStoreAvailable: false });
     expect(listNotices(list, 'live').map((notice) => notice.text)).toEqual([
-      'Las reservas están disponibles, pero no podemos consultar sus estimaciones en este momento.',
+      'Las reservas están disponibles, pero no podemos consultar sus estimaciones ni su gestión operativa en este momento.',
     ]);
   });
 

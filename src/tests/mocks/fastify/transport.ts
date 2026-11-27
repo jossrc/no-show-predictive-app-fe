@@ -1,5 +1,9 @@
 import { ML_HEALTH, MODEL_CATALOG } from '@/tests/mocks/fastify/fixtures/support';
 import { listMockReservations } from '@/tests/mocks/fastify/list';
+import {
+  isOperationalListPath,
+  listOperationalRecords,
+} from '@/tests/mocks/fastify/operational-lists';
 import { handleReservationRoute } from '@/tests/mocks/fastify/reservation-routes';
 import { mockData, mockError, type MockResponse } from '@/tests/mocks/fastify/responses';
 
@@ -18,6 +22,9 @@ function route(method: string, url: URL, headers: Headers, body: string | null):
   if (method === 'GET' && url.pathname === '/api/v1/ml/models') return mockData(MODEL_CATALOG);
   if (method === 'GET' && url.pathname === '/api/v1/reservations') {
     return listMockReservations(url.searchParams, now);
+  }
+  if (method === 'GET' && isOperationalListPath(url.pathname)) {
+    return listOperationalRecords(url.pathname, url.searchParams, now);
   }
   return handleReservationRoute(method, url, body, now);
 }

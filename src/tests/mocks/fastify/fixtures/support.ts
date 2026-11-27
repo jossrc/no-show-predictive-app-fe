@@ -1,7 +1,9 @@
+import type { OperationalStatus } from '@/features/operational-optimization/api/summary.contract';
 import {
   MOCK_IDS,
   type MockReservation,
   RF,
+  seedOperationalStatus,
   toReservationBody,
   toScoreSummary,
   XGB,
@@ -38,11 +40,13 @@ export function reservationDetail(
   reservation: MockReservation,
   scores: MockReservation['scores'],
   now: Date,
+  operational: OperationalStatus = seedOperationalStatus(reservation, now),
 ) {
   return {
     ...toReservationBody(reservation, now),
+    ...operational,
     hasUsableSnapshot: reservation.availability !== 'NOT_SCORABLE',
-    scores: scores.map((score) => toScoreSummary(score, now)),
+    scores: scores.map((score) => toScoreSummary(reservation.id, score, now)),
     sourceStatus: 'SYNTHETIC_DEMO_ONLY',
   };
 }

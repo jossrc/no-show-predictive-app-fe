@@ -9,6 +9,7 @@ import {
   toListItem,
   XGB,
 } from '@/tests/mocks/fastify/fixtures/reservations';
+import { operationalStatusFor } from '@/tests/mocks/fastify/operational-routes';
 import { mockError, mockOk, type MockResponse } from '@/tests/mocks/fastify/responses';
 
 /** Simulación del listado: mismas validaciones y paginación keyset (cursor opaco). */
@@ -142,7 +143,8 @@ export function listMockReservations(params: URLSearchParams, now: Date): MockRe
   const hasMore = offset + limit < sorted.length;
 
   return mockOk({
-    data: page.map((item) => toListItem(item, now, modelKey)),
+    // Resumen operativo por lote (una lectura por página, sin N+1), como el backend.
+    data: page.map((item) => toListItem(item, now, modelKey, operationalStatusFor(item, now))),
     pagination: { limit, nextCursor: hasMore ? encodeCursor(offset + limit) : null },
     period: {
       from,

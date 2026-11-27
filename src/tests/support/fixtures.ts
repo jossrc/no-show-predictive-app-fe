@@ -1,4 +1,7 @@
 import { clientHistorySchema } from '@/features/client-history/api/contract';
+import { attendanceStateSchema } from '@/features/operational-optimization/api/attendance.contract';
+import { overbookingStateSchema } from '@/features/operational-optimization/api/overbooking.contract';
+import { spaceRecoveryStateSchema } from '@/features/operational-optimization/api/recovery.contract';
 import { modelCatalogSchema } from '@/features/prediction-models/api/contract';
 import { riskFactorsSchema } from '@/features/reservation-risk/api/factors.contract';
 import { riskAssessmentSchema } from '@/features/reservation-risk/api/risk.contract';
@@ -22,6 +25,12 @@ import {
   MODEL_CATALOG,
   reservationDetail,
 } from '@/tests/mocks/fastify/fixtures/support';
+import {
+  attendanceState,
+  overbookingState,
+  recoveryState,
+} from '@/tests/mocks/fastify/operational-rules';
+import { seededStore } from '@/tests/mocks/fastify/operational-store';
 
 /**
  * Fixtures tipadas para pruebas de componentes. Se validan con los mismos contratos Zod que
@@ -61,6 +70,25 @@ export function historyFixture(id: string, mode: 'booking_creation' | 'current_k
 }
 
 export const catalogFixture = modelCatalogSchema.parse(MODEL_CATALOG);
+
+/** Estados operativos (HU-06/07/08) de la gestión semilla, validados con el contrato. */
+export function overbookingFixture(id: string) {
+  const reservation = mockReservation(id);
+  return overbookingStateSchema.parse(
+    overbookingState(reservation, reservation.scores, seededStore(NOW), NOW),
+  );
+}
+
+export function attendanceFixture(id: string) {
+  const reservation = mockReservation(id);
+  return attendanceStateSchema.parse(
+    attendanceState(reservation, reservation.scores, seededStore(NOW), NOW),
+  );
+}
+
+export function recoveryFixture(id: string) {
+  return spaceRecoveryStateSchema.parse(recoveryState(mockReservation(id), seededStore(NOW)));
+}
 
 /** Respuesta del listado con las reservas indicadas; los campos globales se pueden sobrescribir. */
 export function listFixture(

@@ -1,3 +1,4 @@
+import type { OverbookingSummary } from '@/features/operational-optimization/api/summary.contract';
 import type { ModelCatalog } from '@/features/prediction-models/api/contract';
 import { type ScoreView, toScoreViews } from '@/features/reservation-risk/model/score-view';
 import type { ReservationListItem, ReservationStatus } from '@/features/reservations/api/contract';
@@ -17,6 +18,8 @@ export interface ReservationRowView {
   stale: boolean;
   rescheduled: boolean;
   scores: ScoreView[];
+  /** Marca HU-06 (null si el almacén de la app no respondió). */
+  overbooking: OverbookingSummary | null;
 }
 
 /** Adapta un ítem del listado a su representación visual (fechas en Lima, sin inventar datos). */
@@ -37,5 +40,6 @@ export function toReservationRowView(
     rescheduled: item.hasRescheduleEvent,
     // Una probabilidad solo se muestra si existe un score persistido; nunca 0 % por omisión.
     scores: toScoreViews(item.risk.probabilities, context.selectedModelKey, context.catalog),
+    overbooking: item.overbooking,
   };
 }

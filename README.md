@@ -3,7 +3,13 @@
 Frontend del sistema web predictivo de inasistencias (XGBoost y Random Forest) para una empresa de
 estética y cuidado personal. Sprint 01 — Core predictivo: reservas (HU-01/HU-03), probabilidad
 estimada (HU-02), factores SHAP (HU-05) e historial del cliente (HU-06), integrados con el backend
-Fastify desde el servidor de Next.js.
+Fastify desde el servidor de Next.js. (Esa numeración es histórica: en la tesis vigente factores =
+HU-04 e historial = HU-05.)
+
+Sprint 02 — Optimización operativa (`/operational-optimization`): marca de horarios para
+sobreasignación (HU-06), resultado real de la cita y comparación con la predicción (HU-07) y
+espacios recuperados (HU-08). Ver [la implementación](docs/sprint-02/frontend-implementation.md)
+y [la matriz de aceptación](docs/sprint-02/frontend-acceptance.md).
 
 Las estimaciones son **exploratorias** (`EXPLORATORY_NOT_VALIDATED`): no hay niveles de riesgo
 aprobados ni uso operativo. Detalles en [docs/frontend-sprint-01.md](docs/frontend-sprint-01.md),
@@ -97,8 +103,9 @@ Playwright necesita el puerto 3001 libre (detener `npm run dev`) y Chromium
 ```text
 src/
   app/(workspace)/reservations/            listado, [reservationId] detalle, loading/error/not-found
+  app/(workspace)/operational-optimization/ HU-06/07/08: alto riesgo y seguimiento operativo
   components/{layout,shared,ui}/           shell, componentes reutilizables, primitivas shadcn
-  features/{reservations,reservation-risk,client-history,prediction-models}/
+  features/{reservations,reservation-risk,client-history,prediction-models,operational-optimization}/
     api/        contratos Zod, acceso server-only y Server Actions
     model/      transformaciones puras y textos de presentación
     components/ vistas de la funcionalidad
